@@ -23,15 +23,13 @@ device = torch.device(dev)
 noise_std = np.array(range(0, 45, 5)) / 100
 use_positional_enc = False
 alphabet = string.printable
-"""
+
+DATASETS = [
     {
         "DATASET_ENC": './data/random/substitutionCipherArr-encryptedRandomCharSeq.csv',
         "DATASET_ORI": './data/random/arr-decryptedRandomCharSeq.csv',
         "RESULTS_FILE": "./results/random/substitutionCipher.pkl",
     },
-"""
-DATASETS = [
-
     {
         "DATASET_ENC": './data/random/transpositionCipherArr-encryptedRandomCharSeq.csv',
         "DATASET_ORI": './data/random/arr-decryptedRandomCharSeq.csv',

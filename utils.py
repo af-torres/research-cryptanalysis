@@ -1,6 +1,7 @@
 import csv
 import numpy as np
 import string
+import pickle
 
 DATA_DIR = "./data/"
 
@@ -37,3 +38,8 @@ def write_sequence_arr(arr, file_name):
 def write_key(key, file_name):
     with open(DATA_DIR+file_name, 'w') as file:
         file.write(repr(key))
+
+def load_results(file_name):
+    with open(file_name, 'rb') as file:
+        loaded_object = pickle.load(file)
+    return loaded_object
