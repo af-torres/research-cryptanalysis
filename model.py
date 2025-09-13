@@ -7,31 +7,11 @@ def get_loss(model, lossFunc, x, y):
     with torch.no_grad():
         outputs = model(x)
         y = y.reshape(-1)
-        loss = lossFunc(
-            outputs.view(-1, outputs.size(2)),
-            y
-        )
-        return loss.item()
-
-def get_positional_encoding(sequence_length, embedding_size):
-    """
-    Generates sinusoidal positional encodings.
-
-    Args:
-        sequence_length (int): Length of the input sequence.
-        embedding_size (int): Dimensionality of embeddings (d_model).
-
-    Returns:
-        numpy.ndarray of shape (sequence_length, embedding_size)
-    """
-    position = np.arange(sequence_length)[:, np.newaxis]         # Shape: (seq_len, 1)
-    div_term = np.exp(np.arange(0, embedding_size, 2) * (-np.log(10000.0) / embedding_size))  # Shape: (embedding_size/2,)
-
-    pe = np.zeros((sequence_length, embedding_size))
-    pe[:, 0::2] = np.sin(position * div_term)  # Even indices
-    pe[:, 1::2] = np.cos(position * div_term)  # Odd indices
-
-    return torch.Tensor(pe)
+    loss = lossFunc(
+        outputs.view(-1, outputs.size(2)),
+        y
+    )
+    return loss.item()
 
 class HadamardNoise(nn.Module):
     def __init__(self, noise_std=0.1):
@@ -50,7 +30,6 @@ class AutoEncoder_model(nn.Module):
         self, num_classes,
         seq_len=150, embedding_dim=32, hidden_dim=64,
         noise_std=0.1, padding_idx=0,
-        use_positional_enc=False
     ):
         super(AutoEncoder_model, self).__init__()
         self.embedding = nn.Embedding(num_classes, embedding_dim, padding_idx=padding_idx)
@@ -58,8 +37,8 @@ class AutoEncoder_model(nn.Module):
         self.encoder = nn.Sequential(
             nn.Linear(seq_len * embedding_dim, hidden_dim), # (2336 -> 64)
             nn.ReLU(),
-            nn.Linear(hidden_dim, hidden_dim),
-            nn.ReLU(),
+            #nn.Linear(hidden_dim, hidden_dim),
+            #nn.ReLU(),
             nn.Linear(hidden_dim, hidden_dim),
         )
 
@@ -68,32 +47,24 @@ class AutoEncoder_model(nn.Module):
         self.decoder = nn.Sequential(
             nn.Linear(hidden_dim, hidden_dim),
             nn.ReLU(),
-            nn.Linear(hidden_dim, hidden_dim),
-            nn.ReLU(),
+            #nn.Linear(hidden_dim, hidden_dim),
+            #nn.ReLU(),
             nn.Linear(hidden_dim, seq_len * num_classes) # (64 -> 2190) (actual X)
         )
 
         self.num_classes = num_classes
         self.seq_len = seq_len
 
-        pos = None
-        if use_positional_enc:
-            pos = get_positional_encoding(seq_len, embedding_dim)
-        else:
-            pos = torch.zeros((seq_len, embedding_dim))
-        self.register_buffer("positional_encoding", pos)
-
-
     def forward(self, x):
         embedded = self.embedding(x)
-        embedded = embedded + self.positional_encoding
         embedded = embedded.view(x.size(0), -1)
         encoded = self.encoder(embedded)
-
-        noised = self.noise(encoded) # this works as a regulizer
+        
+        noised = self.noise(encoded) # this works as a regularizer
+       
         decoded = self.decoder(noised)
         decoded = decoded.view(-1, self.seq_len, self.num_classes)
-
+        
         return decoded
 
 class LSTM_model(nn.Module):

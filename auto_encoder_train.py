@@ -26,40 +26,46 @@ alphabet = string.printable
 
 DATASETS = [
     {
-        "DATASET_ENC": './data/random/substitutionCipherArr-encryptedRandomCharSeq.csv',
-        "DATASET_ORI": './data/random/arr-decryptedRandomCharSeq.csv',
-        "RESULTS_FILE": "./results/random/substitutionCipher.pkl",
+        "DATASET_ENC": '../cryptanalysis_old/datasets/dtEnc10k.csv',
+        "DATASET_ORI": '../cryptanalysis_old/datasets/dtOri10k.csv',
+        "RESULTS_FILE": "./results/random/substitutionCipher-old-data.pkl",
+        "NAME": "OLD-DATASET",
     },
-    {
-        "DATASET_ENC": './data/random/transpositionCipherArr-encryptedRandomCharSeq.csv',
-        "DATASET_ORI": './data/random/arr-decryptedRandomCharSeq.csv',
-        "RESULTS_FILE": "./results/random/transpositionCipher.pkl",
-    },
-    {
-        "DATASET_ENC": './data/random/productCipherArr-encryptedRandomCharSeq.csv',
-        "DATASET_ORI": './data/random/arr-decryptedRandomCharSeq.csv',
-        "RESULTS_FILE": "./results/random/productCipher.pkl",
-    },
-    {
-        "DATASET_ENC": './data/eng_sentences/substitutionCipherArr-encryptedEngSeq.csv',
-        "DATASET_ORI": './data/eng_sentences/arr-decryptedEngSeq.csv',
-        "RESULTS_FILE": "./results/eng_sentences/substitutionCipher.pkl",
-    },
-    {
-        "DATASET_ENC": './data/eng_sentences/transpositionCipherArr-encryptedEngSeq.csv',
-        "DATASET_ORI": './data/eng_sentences/arr-decryptedEngSeq.csv',
-        "RESULTS_FILE": "./results/eng_sentences/transpositionCipher.pkl",
-    },
-    {
-        "DATASET_ENC": './data/eng_sentences/productCipherArr-encryptedEngSeq.csv',
-        "DATASET_ORI": './data/eng_sentences/arr-decryptedEngSeq.csv',
-        "RESULTS_FILE": "./results/eng_sentences/productCipher.pkl",
-    },
+#    {
+#        "DATASET_ENC": './data/random/substitutionCipherArr-encryptedRandomCharSeq.csv',
+#        "DATASET_ORI": './data/random/arr-decryptedRandomCharSeq.csv',
+#        "RESULTS_FILE": "./results/random/substitutionCipher.pkl",
+#    },
+#    {
+#        "DATASET_ENC": './data/random/transpositionCipherArr-encryptedRandomCharSeq.csv',
+#        "DATASET_ORI": './data/random/arr-decryptedRandomCharSeq.csv',
+#        "RESULTS_FILE": "./results/random/transpositionCipher.pkl",
+#    },
+#    {
+#        "DATASET_ENC": './data/random/productCipherArr-encryptedRandomCharSeq.csv',
+#        "DATASET_ORI": './data/random/arr-decryptedRandomCharSeq.csv',
+#        "RESULTS_FILE": "./results/random/productCipher.pkl",
+#    },
+#    {
+#        "DATASET_ENC": './data/eng_sentences/substitutionCipherArr-encryptedEngSeq.csv',
+#        "DATASET_ORI": './data/eng_sentences/arr-decryptedEngSeq.csv',
+#        "RESULTS_FILE": "./results/eng_sentences/substitutionCipher.pkl",
+#    },
+#    {
+#        "DATASET_ENC": './data/eng_sentences/transpositionCipherArr-encryptedEngSeq.csv',
+#        "DATASET_ORI": './data/eng_sentences/arr-decryptedEngSeq.csv',
+#        "RESULTS_FILE": "./results/eng_sentences/transpositionCipher.pkl",
+#    },
+#    {
+#        "DATASET_ENC": './data/eng_sentences/productCipherArr-encryptedEngSeq.csv',
+#        "DATASET_ORI": './data/eng_sentences/arr-decryptedEngSeq.csv',
+#        "RESULTS_FILE": "./results/eng_sentences/productCipher.pkl",
+#    },
 ]
 
 def build_model(noise_std, num_classes, seq_len):
-    embedding_dim = 64
-    hidden_dim = 2000
+    embedding_dim = 500
+    hidden_dim = 150
     padding_idx = 0
     learning_rate = 1e-3 # lr
     weight_decay = 1e-2
@@ -71,7 +77,6 @@ def build_model(noise_std, num_classes, seq_len):
         hidden_dim=hidden_dim,
         noise_std=noise_std,
         padding_idx=padding_idx,
-        use_positional_enc= use_positional_enc
     )
 
     lossFunc = nn.CrossEntropyLoss(ignore_index=padding_idx)
@@ -91,7 +96,6 @@ def train_model(
     print("training model...")
     
     train_dataset = TensorDataset(X_tr, Y_tr)
-    # we can shuffle the data as every training sequence is independent of each other
     train_dataloader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
 
     weights = None # used to store best performing model weights (as of valdiation loss)
@@ -124,7 +128,7 @@ def train_model(
         if weights is None or np.min(val_loss) == epoch_validation_loss:
             # this way of assigning the weights variable must be done to avoid a shallow copy of
             # the model as we are still updating it in the training loop
-            weights = {k: v.clone() for k, v in model.state_dict().items()}
+            weights = {k: v.clone().to(torch.device("cpu")) for k, v in model.state_dict().items()}
 
         if verbose and (epoch % 500 == 0 or epoch + 1 == num_epochs):
                 print(f"Epoch: {epoch}, loss: {epoch_train_loss:.5f}, val_loss: {epoch_validation_loss:.5f}")
@@ -137,7 +141,7 @@ def train_model(
     }
 
 
-num_epochs = 3_000
+num_epochs = 5_00
 
 for d in DATASETS:
     torch.manual_seed(1234)
@@ -147,7 +151,7 @@ for d in DATASETS:
     X_tr, Y_tr = train
     X_vl, Y_vl = validation
 
-    num_classes = len(alphabet) + 1
+    num_classes = len(torch.unique(X_tr))# len(alphabet) + 1
     seq_len = X_tr.shape[1]
 
     models_setup = []
@@ -174,17 +178,12 @@ for d in DATASETS:
         print(f"training completed in {end - last}")
         last = end
         
-        del m
-        torch.cuda.empty_cache()
-
     end = time.time()
     print(f"all models for one dataset completed in {end - start}")
 
-    del X_tr, Y_tr, X_vl, Y_vl
-    torch.cuda.empty_cache()
-    
     # write weights and training results file
     results_file = d.get("RESULTS_FILE", "")
     with open(results_file, "wb") as file:
         pickle.dump(training_results, file)
         print(f"wrote results file {results_file}")
+
