@@ -20,8 +20,7 @@ else:
 
 device = torch.device(dev)
 
-noise_std = np.array([0.])#np.array(range(0, 45, 5)) / 100
-use_positional_enc = False
+noise_std = np.array(range(0, 45, 5)) / 100
 alphabet = string.printable
 
 DATASETS = [
@@ -62,12 +61,12 @@ def build_model(noise_std, num_classes, seq_len):
     output_size = num_classes # (fixed for the data) output dimesion
     PAD_INDEX = 0 # number used to pad sequences
     num_layers = 1 # number of stacked lstm layers
-    hidden_size = 2000 # (fixed for the data) number of features in hidden state
+    hidden_size = 1 # (fixed for the data) number of features in hidden state
     padding_idx = 0
     learning_rate = 1e-3 # lr
     weight_decay = 1e-2
-
-    model = LSTM_model(output_size, input_size, hidden_size, num_layers)
+    
+    model = LSTM_model(output_size, input_size, hidden_size, num_layers, noise_std=noise_std, seq_len=seq_len)
 
     lossFunc = nn.CrossEntropyLoss(ignore_index=padding_idx)
     optimizer = torch.optim.AdamW(model.parameters(), lr=learning_rate, weight_decay=weight_decay)
@@ -99,7 +98,7 @@ def train_model(
         for (x, y) in train_dataloader:
             optimizer.zero_grad() # reset gradients on each batch
             outputs = model(x) # forward pass
-
+            
             # obtain the loss function
             _batch_size = outputs.shape[0] * outputs.shape[1]
             loss = lossFunc(
@@ -119,10 +118,10 @@ def train_model(
         if weights is None or np.min(val_loss) == epoch_validation_loss:
             # this way of assigning the weights variable must be done to avoid a shallow copy of
             # the model as we are still updating it in the training loop
-            weights = {k: v.clone() for k, v in model.state_dict().items()}
+            weights = {k: v.clone().to(torch.device("cpu")) for k, v in model.state_dict().items()}
 
-        if verbose and (epoch % 500 == 0 or epoch + 1 == num_epochs):
-                print(f"Epoch: {epoch}, loss: {epoch_train_loss:.5f}, val_loss: {epoch_validation_loss:.5f}")
+        if verbose and (epoch % 100 == 0 or epoch + 1 == num_epochs):
+                print(f"Epoch: {epoch + 1}, loss: {epoch_train_loss:.5f}, val_loss: {epoch_validation_loss:.5f}")
 
     print(f"model performance:\nmin_loss: {np.min(train_loss):.5f}, min_val_loss: {np.min(val_loss):.5f}")
     return {
@@ -133,9 +132,10 @@ def train_model(
 
 
 def to_sequence(X):
+    # to_sequence includes a dimension along the second axis as each element in the dataset is one item within time
     return torch.unsqueeze(X, 2)
 
-num_epochs = 3_000
+num_epochs = 5_00
 
 for d in DATASETS:
     torch.manual_seed(1234)
@@ -175,17 +175,12 @@ for d in DATASETS:
         print(f"training completed in {end - last}")
         last = end
         
-        del m
-        torch.cuda.empty_cache()
-
     end = time.time()
     print(f"all models for one dataset completed in {end - start}")
 
-    del X_tr, Y_tr, X_vl, Y_vl
-    torch.cuda.empty_cache()
-    
     # write weights and training results file
     results_file = d.get("RESULTS_FILE", "")
     with open(results_file, "wb") as file:
         pickle.dump(training_results, file)
         print(f"wrote results file {results_file}")
+

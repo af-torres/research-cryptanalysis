@@ -27,18 +27,17 @@ class HadamardNoise(nn.Module):
 
 class AutoEncoder_model(nn.Module):
     def __init__(
-        self, num_classes,
-        seq_len=150, embedding_dim=32, hidden_dim=64,
-        noise_std=0.1, padding_idx=0,
+        self, num_classes, seq_len,
+        embedding_dim=32, hidden_dim=64,
+        noise_std=0.1, dropout=0.2, padding_idx=0,
     ):
         super(AutoEncoder_model, self).__init__()
         self.embedding = nn.Embedding(num_classes, embedding_dim, padding_idx=padding_idx)
 
         self.encoder = nn.Sequential(
             nn.Linear(seq_len * embedding_dim, hidden_dim), # (2336 -> 64)
+            nn.Dropout(p=dropout), 
             nn.ReLU(),
-            #nn.Linear(hidden_dim, hidden_dim),
-            #nn.ReLU(),
             nn.Linear(hidden_dim, hidden_dim),
         )
 
@@ -46,9 +45,8 @@ class AutoEncoder_model(nn.Module):
 
         self.decoder = nn.Sequential(
             nn.Linear(hidden_dim, hidden_dim),
+            nn.Dropout(p=dropout), 
             nn.ReLU(),
-            #nn.Linear(hidden_dim, hidden_dim),
-            #nn.ReLU(),
             nn.Linear(hidden_dim, seq_len * num_classes) # (64 -> 2190) (actual X)
         )
 
@@ -71,7 +69,9 @@ class LSTM_model(nn.Module):
     def __init__(self, output_size, 
                  input_size, hidden_size, num_layers,
                  noise_std=0.0,
-                 bidirectional=False):
+                 seq_len=73,
+                 bidirectional=False,
+                 dropout=0.5):
         super(LSTM_model, self).__init__()
         self.output_size = output_size # n umber of classes (number of outputs)
         self.num_layers = num_layers # number of layers
@@ -83,12 +83,14 @@ class LSTM_model(nn.Module):
         self.lstm = nn.LSTM(
             input_size=input_size, hidden_size=hidden_size,
             num_layers=num_layers, batch_first=True, bidirectional=bidirectional
-        ) # lstm
+        ) 
         self.noise = HadamardNoise(noise_std=noise_std)
         self.head = nn.Sequential(
-            nn.Linear(hidden_size * D, hidden_size * D),
+            # nn.Dropout(p=dropout, inplace=False)
+            nn.Linear(hidden_size * D * seq_len, hidden_size * D * seq_len),
             nn.ReLU(),
-            nn.Linear(hidden_size * D, output_size),
+            #nn.Dropout(p=dropout, inplace=False),
+            nn.Linear(hidden_size * D * seq_len, output_size * seq_len),
         )
         
     def forward(self, x):
@@ -101,8 +103,10 @@ class LSTM_model(nn.Module):
         c_0 = c_0.to(device)
         
         # Propagate input through LSTM
+        breakpoint()
         out, (hn, cn) = self.lstm(x, (h_0, c_0)) # lstm with input, hidden, and internal state
-        noised = self.noise(out)
-        
-        return self.head(noised) # Final Output
+        flatten = torch.flatten(out, start_dim=1)
+        noised = self.noise(flatten)
+       
+        return self.head(noised).view((x.shape[0], x.shape[1], -1))
     

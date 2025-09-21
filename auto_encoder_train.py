@@ -25,50 +25,60 @@ use_positional_enc = False
 alphabet = string.printable
 
 DATASETS = [
+#    {
+#        "DATASET_ENC": '../cryptanalysis_old/datasets/dtEnc10k.csv',
+#        "DATASET_ORI": '../cryptanalysis_old/datasets/dtOri10k.csv',
+#        "RESULTS_FILE": "./results/random/substitutionCipher-old-data.pkl",
+#        "NAME": "OLD-DATASET",
+#    },
     {
-        "DATASET_ENC": '../cryptanalysis_old/datasets/dtEnc10k.csv',
-        "DATASET_ORI": '../cryptanalysis_old/datasets/dtOri10k.csv',
-        "RESULTS_FILE": "./results/random/substitutionCipher-old-data.pkl",
-        "NAME": "OLD-DATASET",
+        "DATASET_ENC": './data/random/substitutionCipherArr-encryptedRandomCharSeq.csv',
+        "DATASET_ORI": './data/random/arr-decryptedRandomCharSeq.csv',
+        "RESULTS_DIR": "./results/random/",
+        "NAME": "random-substitution",
     },
-#    {
-#        "DATASET_ENC": './data/random/substitutionCipherArr-encryptedRandomCharSeq.csv',
-#        "DATASET_ORI": './data/random/arr-decryptedRandomCharSeq.csv',
-#        "RESULTS_FILE": "./results/random/substitutionCipher.pkl",
-#    },
-#    {
-#        "DATASET_ENC": './data/random/transpositionCipherArr-encryptedRandomCharSeq.csv',
-#        "DATASET_ORI": './data/random/arr-decryptedRandomCharSeq.csv',
-#        "RESULTS_FILE": "./results/random/transpositionCipher.pkl",
-#    },
-#    {
-#        "DATASET_ENC": './data/random/productCipherArr-encryptedRandomCharSeq.csv',
-#        "DATASET_ORI": './data/random/arr-decryptedRandomCharSeq.csv',
-#        "RESULTS_FILE": "./results/random/productCipher.pkl",
-#    },
-#    {
-#        "DATASET_ENC": './data/eng_sentences/substitutionCipherArr-encryptedEngSeq.csv',
-#        "DATASET_ORI": './data/eng_sentences/arr-decryptedEngSeq.csv',
-#        "RESULTS_FILE": "./results/eng_sentences/substitutionCipher.pkl",
-#    },
-#    {
-#        "DATASET_ENC": './data/eng_sentences/transpositionCipherArr-encryptedEngSeq.csv',
-#        "DATASET_ORI": './data/eng_sentences/arr-decryptedEngSeq.csv',
-#        "RESULTS_FILE": "./results/eng_sentences/transpositionCipher.pkl",
-#    },
-#    {
-#        "DATASET_ENC": './data/eng_sentences/productCipherArr-encryptedEngSeq.csv',
-#        "DATASET_ORI": './data/eng_sentences/arr-decryptedEngSeq.csv',
-#        "RESULTS_FILE": "./results/eng_sentences/productCipher.pkl",
-#    },
+    {
+        "DATASET_ENC": './data/random/transpositionCipherArr-encryptedRandomCharSeq.csv',
+        "DATASET_ORI": './data/random/arr-decryptedRandomCharSeq.csv',
+        "RESULTS_DIR": "./results/random/",
+        "NAME": "random-transposition",
+    },
+    {
+        "DATASET_ENC": './data/random/productCipherArr-encryptedRandomCharSeq.csv',
+        "DATASET_ORI": './data/random/arr-decryptedRandomCharSeq.csv',
+        "RESULTS_DIR": "./results/random/",
+        "NAME": "random-product",
+    },
+    {
+        "DATASET_ENC": './data/eng_sentences/substitutionCipherArr-encryptedEngSeq.csv',
+        "DATASET_ORI": './data/eng_sentences/arr-decryptedEngSeq.csv',
+        "RESULTS_DIR": "./results/eng_sentences/",
+        "NAME": "eng_sentences-substitution",
+    },
+    {
+        "DATASET_ENC": './data/eng_sentences/transpositionCipherArr-encryptedEngSeq.csv',
+        "DATASET_ORI": './data/eng_sentences/arr-decryptedEngSeq.csv',
+        "RESULTS_DIR": "./results/eng_sentences/",
+        "NAME": "eng_sentences-transposition",
+    },
+    {
+        "DATASET_ENC": './data/eng_sentences/productCipherArr-encryptedEngSeq.csv',
+        "DATASET_ORI": './data/eng_sentences/arr-decryptedEngSeq.csv',
+        "RESULTS_FILE": "./results/eng_sentences/",
+        "NAME": "eng_sentences-product",
+    },
 ]
 
-def build_model(noise_std, num_classes, seq_len):
-    embedding_dim = 500
-    hidden_dim = 150
+def build_model(
+    num_classes, seq_len,
+    noise_std = 0.45,
+    dropout = 0.5,
+    embedding_dim = 500,
+    hidden_dim = 150,
+    learning_rate = 1e-3,
+    weight_decay = 1e-2,
+):
     padding_idx = 0
-    learning_rate = 1e-3 # lr
-    weight_decay = 1e-2
 
     model = AutoEncoder_model(
         num_classes=num_classes,
@@ -76,6 +86,7 @@ def build_model(noise_std, num_classes, seq_len):
         embedding_dim=embedding_dim,
         hidden_dim=hidden_dim,
         noise_std=noise_std,
+        dropout=dropout,
         padding_idx=padding_idx,
     )
 
@@ -89,10 +100,10 @@ def build_model(noise_std, num_classes, seq_len):
     }
 
 def train_model(
-        model, lossFunc, optimizer,
-        X_tr, Y_tr, X_vl, Y_vl,
-        num_epochs, batch_size=250, verbose=False
-    ):
+    model, lossFunc, optimizer,
+    X_tr, Y_tr, X_vl, Y_vl,
+    num_epochs, batch_size=250, verbose=False,
+):
     print("training model...")
     
     train_dataset = TensorDataset(X_tr, Y_tr)
@@ -130,8 +141,8 @@ def train_model(
             # the model as we are still updating it in the training loop
             weights = {k: v.clone().to(torch.device("cpu")) for k, v in model.state_dict().items()}
 
-        if verbose and (epoch % 500 == 0 or epoch + 1 == num_epochs):
-                print(f"Epoch: {epoch}, loss: {epoch_train_loss:.5f}, val_loss: {epoch_validation_loss:.5f}")
+        if verbose and (epoch % 100 == 0 or epoch + 1 == num_epochs):
+                print(f"Epoch: {epoch + 1}, loss: {epoch_train_loss:.5f}, val_loss: {epoch_validation_loss:.5f}")
 
     print(f"model performance:\nmin_loss: {np.min(train_loss):.5f}, min_val_loss: {np.min(val_loss):.5f}")
     return {
@@ -151,7 +162,8 @@ for d in DATASETS:
     X_tr, Y_tr = train
     X_vl, Y_vl = validation
 
-    num_classes = len(torch.unique(X_tr))# len(alphabet) + 1
+    # num_classes = len(torch.unique(X_tr))
+    num_classes = len(alphabet) + 1
     seq_len = X_tr.shape[1]
 
     models_setup = []
@@ -182,7 +194,9 @@ for d in DATASETS:
     print(f"all models for one dataset completed in {end - start}")
 
     # write weights and training results file
-    results_file = d.get("RESULTS_FILE", "")
+    results_dir = d.get("RESULTS_DIR", "")
+    dataset_name = d.get("NAME")
+    results_file = results_dir + dataset_name
     with open(results_file, "wb") as file:
         pickle.dump(training_results, file)
         print(f"wrote results file {results_file}")
