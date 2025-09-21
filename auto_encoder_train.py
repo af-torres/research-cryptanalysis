@@ -6,6 +6,8 @@ import torch.nn as nn
 from torch.utils.data import TensorDataset, DataLoader
 import pickle
 import random
+import uuid
+
 from model import AutoEncoder_model, get_loss
 from datasets import load_dataset
 import string
@@ -196,7 +198,7 @@ for d in DATASETS:
     # write weights and training results file
     results_dir = d.get("RESULTS_DIR", "")
     dataset_name = d.get("NAME")
-    results_file = results_dir + dataset_name
+    results_file = results_dir + dataset_name + uuid.uuid4().hex + ".pkl"
     with open(results_file, "wb") as file:
         pickle.dump(training_results, file)
         print(f"wrote results file {results_file}")
