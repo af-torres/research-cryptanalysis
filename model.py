@@ -1,6 +1,7 @@
 import torch
 import numpy as np
 import torch.nn as nn
+import torch.nn.functional as F
 
 def get_loss(model, lossFunc, x, y):
     model.eval() # deactivate things like dropout and other training configurations
@@ -25,17 +26,51 @@ class HadamardNoise(nn.Module):
         else:
             return x  # no noise during evaluation
 
-class AutoEncoder_model(nn.Module):
+class AutoEncoderSimple_model(nn.Module):
     def __init__(
         self, num_classes, seq_len,
-        embedding_dim=32, hidden_dim=64,
+        hidden_dim=64,
         noise_std=0.1, dropout=0.2, padding_idx=0,
     ):
-        super(AutoEncoder_model, self).__init__()
-        self.embedding = nn.Embedding(num_classes, embedding_dim, padding_idx=padding_idx)
-
+        super(AutoEncoderSimple_model, self).__init__()
         self.encoder = nn.Sequential(
-            nn.Linear(seq_len * embedding_dim, hidden_dim), # (2336 -> 64)
+            nn.Linear(seq_len, hidden_dim),
+            nn.Dropout(p=dropout), 
+            nn.ReLU(),
+            nn.Linear(hidden_dim, hidden_dim),
+        )
+
+        self.noise = HadamardNoise(noise_std=noise_std)
+
+        self.decoder = nn.Sequential(
+            nn.Linear(hidden_dim, hidden_dim),
+            nn.Dropout(p=dropout), 
+            nn.ReLU(),
+            nn.Linear(hidden_dim, seq_len * num_classes) 
+        )
+
+        self.num_classes = num_classes
+        self.seq_len = seq_len
+
+    def forward(self, x):
+        encoded = self.encoder(x.float())
+    
+        noised = self.noise(encoded) # this works as a regularizer
+       
+        decoded = self.decoder(noised)
+        decoded = decoded.view(-1, self.seq_len, self.num_classes)
+        
+        return decoded
+
+class AutoEncoderOneHot_model(nn.Module):
+    def __init__(
+        self, num_classes, seq_len,
+        hidden_dim=64,
+        noise_std=0.1, dropout=0.2, padding_idx=0,
+    ):
+        super(AutoEncoderOneHot_model, self).__init__()
+        self.encoder = nn.Sequential(
+            nn.Linear(seq_len * num_classes, hidden_dim), # (2336 -> 64)
             nn.Dropout(p=dropout), 
             nn.ReLU(),
             nn.Linear(hidden_dim, hidden_dim),
@@ -54,9 +89,9 @@ class AutoEncoder_model(nn.Module):
         self.seq_len = seq_len
 
     def forward(self, x):
-        embedded = self.embedding(x)
-        embedded = embedded.view(x.size(0), -1)
-        encoded = self.encoder(embedded)
+        one_hot = F.one_hot(x, num_classes=self.num_classes)
+        one_hot = one_hot.view((len(x), -1)).float()
+        encoded = self.encoder(one_hot)
         
         noised = self.noise(encoded) # this works as a regularizer
        
@@ -64,6 +99,58 @@ class AutoEncoder_model(nn.Module):
         decoded = decoded.view(-1, self.seq_len, self.num_classes)
         
         return decoded
+
+class AutoEncoder_factory:
+    __versions = {
+        "one_hot": AutoEncoderOneHot_model,
+        "simple": AutoEncoderSimple_model,
+    } 
+
+    __model_hyper_params = {
+        "one_hot": dict(
+            noise_std = uniform(0.35, 0.35),
+            dropout = uniform(0.25, 0.25),
+            hidden_dim = range(5, 1000),
+            lr = loguniform(-3, 2),
+            weight_decay = loguniform(-2, 2),
+        ),
+        "simple":dict(
+            noise_std = uniform(0.35, 0.35),
+            dropout = uniform(0.25, 0.25),
+            hidden_dim = range(5, 1000),
+            lr = loguniform(-3, 2),
+            weight_decay = loguniform(-2, 2),
+        ),
+    }
+
+    __loss_hyper_params = {
+        "one_hot": dict(
+            lr = loguniform(-3, 2),
+            weight_decay = loguniform(-2, 2),
+        ),
+        "simple":dict(
+            lr = loguniform(-3, 2),
+            weight_decay = loguniform(-2, 2),
+        ),
+    }
+
+    @classmethod
+    def get_model(cls, version, *args, **kargs):
+        print(f"building auto_encoder with args={args} and kwargs={kargs}")
+        model = cls.__versions[version](*args, **kargs)
+        return model
+
+    @classmethod
+    def get_hyper_param_space(cls, version):
+        return cls.__model_hyper_params[version] | cls.__loss_hyper_params[version]
+
+    @classmethod
+    def get_model_param_names(cls, version):
+        return cls.__model_hyper_params[version].keys()
+
+    @classmethod
+    def get_loss_param_names(cls, version):
+        return cls.__loss_hyper_params[version].keys()
 
 class LSTM_model(nn.Module):
     def __init__(self, output_size, 

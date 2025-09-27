@@ -4,12 +4,19 @@ import torch
 import torch.nn as nn
 
 from torch.utils.data import TensorDataset, DataLoader
+from scipy.stats import uniform
+from mango.domain.distribution import loguniform
+from mango import scheduler, Tuner
+
+
 import pickle
 import random
 import uuid
 
-from model import AutoEncoder_model, get_loss
+from model import AutoEncoder_factory, get_loss
 from datasets import load_dataset
+
+
 import string
 import time
 
@@ -22,9 +29,13 @@ else:
 
 device = torch.device(dev)
 
-noise_std = np.array(range(0, 45, 5)) / 100
-use_positional_enc = False
 alphabet = string.printable
+model_version = "simple"
+
+num_classes = 0
+seq_len = 0
+num_epochs = 5_00
+train_id = uuid.uuid4().hex
 
 DATASETS = [
 #    {
@@ -66,40 +77,11 @@ DATASETS = [
     {
         "DATASET_ENC": './data/eng_sentences/productCipherArr-encryptedEngSeq.csv',
         "DATASET_ORI": './data/eng_sentences/arr-decryptedEngSeq.csv',
-        "RESULTS_FILE": "./results/eng_sentences/",
+        "RESULTS_DIR": "./results/eng_sentences/",
         "NAME": "eng_sentences-product",
     },
 ]
 
-def build_model(
-    num_classes, seq_len,
-    noise_std = 0.45,
-    dropout = 0.5,
-    embedding_dim = 500,
-    hidden_dim = 150,
-    learning_rate = 1e-3,
-    weight_decay = 1e-2,
-):
-    padding_idx = 0
-
-    model = AutoEncoder_model(
-        num_classes=num_classes,
-        seq_len=seq_len,
-        embedding_dim=embedding_dim,
-        hidden_dim=hidden_dim,
-        noise_std=noise_std,
-        dropout=dropout,
-        padding_idx=padding_idx,
-    )
-
-    lossFunc = nn.CrossEntropyLoss(ignore_index=padding_idx)
-    optimizer = torch.optim.AdamW(model.parameters(), lr=learning_rate, weight_decay=weight_decay)
-
-    return {
-        "model": model,
-        "lossFunc": lossFunc,
-        "optimizer": optimizer,
-    }
 
 def train_model(
     model, lossFunc, optimizer,
@@ -153,8 +135,61 @@ def train_model(
         "val_loss": val_loss,
     }
 
+def get_config_subset_values(config, keys):
+    values = [config[k] for k in keys]
+    return dict(zip(keys, values))
 
-num_epochs = 5_00
+def build_model(
+    num_classes, seq_len,
+    padding_idx = 0,
+    **config
+):
+    model_config = get_config_subset_values(
+        config,
+        AutoEncoder_factory.get_model_param_names(model_version)
+    )
+    model = AutoEncoder_factory.get_model(
+        model_version,
+        num_classes=num_classes,
+        seq_len=seq_len,
+        padding_idx=padding_idx,
+        **model_config,
+    )
+    
+    loss_config = get_config_subset_values(
+        config,
+        AutoEncoder_factory.get_loss_param_names(model_version)
+    )
+    lossFunc = nn.CrossEntropyLoss(ignore_index=padding_idx)
+    optimizer = torch.optim.AdamW(model.parameters(), **loss_config)
+
+    return {
+        "model": model,
+        "lossFunc": lossFunc,
+        "optimizer": optimizer,
+    }
+
+@scheduler.serial
+def objective(
+    **build_kwargs
+):
+    config = build_model(
+        num_classes, seq_len,
+        **build_kwargs
+    )
+    m = config.get("model")
+    l = config.get("lossFunc")
+    o = config.get("optimizer")
+    
+    r = train_model(
+        m, l, o,
+        X_tr, Y_tr, X_vl, Y_vl,
+        num_epochs, verbose=True
+    )
+    loss = r.get("val_loss")
+
+    return np.min(loss)
+
 
 for d in DATASETS:
     torch.manual_seed(1234)
@@ -168,37 +203,33 @@ for d in DATASETS:
     num_classes = len(alphabet) + 1
     seq_len = X_tr.shape[1]
 
-    models_setup = []
-    for s in noise_std:
-        m = build_model(s, num_classes, seq_len)
-        models_setup.append(m)
-
+    # Search for hyper-parameters
     start = time.time()
-    last = start
-    training_results = []
-    for config in models_setup:
-        m = config.get("model")
-        l = config.get("lossFunc")
-        o = config.get("optimizer")
-        
-        r = train_model(
-            m, l, o,
-            X_tr, Y_tr, X_vl, Y_vl,
-            num_epochs, verbose=True
-        )
-        training_results.append(r)
-        
-        end = time.time()
-        print(f"training completed in {end - last}")
-        last = end
-        
+    conf_dict = dict(num_iteration=40, domain_size=5000, initial_random=5)
+    param_space = AutoEncoder_factory.get_hyper_param_space(model_version)
+    tuner = Tuner(param_space, objective, conf_dict)
+    results = tuner.minimize()        
     end = time.time()
-    print(f"all models for one dataset completed in {end - start}")
+    print(f"training completed in {end - start}")
+    
+    # Train the model and save results with best found parameters 
+    params = results["best_params"]
+    config = build_model(
+        num_classes, seq_len, **params
+    )
+    m = config.get("model")
+    l = config.get("lossFunc")
+    o = config.get("optimizer")
+    training_results = train_model(
+        m, l, o,
+        X_tr, Y_tr, X_vl, Y_vl,
+        num_epochs, verbose=True
+    ) | {"hyper-params": params}
 
     # write weights and training results file
     results_dir = d.get("RESULTS_DIR", "")
     dataset_name = d.get("NAME")
-    results_file = results_dir + dataset_name + uuid.uuid4().hex + ".pkl"
+    results_file = results_dir + f"{model_version}/"  + dataset_name + "-autoencoder-" + train_id + ".pkl"
     with open(results_file, "wb") as file:
         pickle.dump(training_results, file)
         print(f"wrote results file {results_file}")
