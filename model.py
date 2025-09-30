@@ -3,6 +3,9 @@ import numpy as np
 import torch.nn as nn
 import torch.nn.functional as F
 
+from mango.domain.distribution import loguniform
+from scipy.stats import uniform
+
 def get_loss(model, lossFunc, x, y):
     model.eval() # deactivate things like dropout and other training configurations
     with torch.no_grad():
@@ -62,6 +65,48 @@ class AutoEncoderSimple_model(nn.Module):
         
         return decoded
 
+class AutoEncoderEmbedding_model(nn.Module):
+    def __init__(
+        self, num_classes, seq_len,
+        embedding_dim=120,
+        hidden_dim=64,
+        noise_std=0.1, dropout=0.2,
+        padding_idx=0,
+    ):
+        super(AutoEncoderEmbedding_model, self).__init__()
+
+        self.embedding = nn.Embedding(num_classes, embedding_dim, padding_idx)
+        self.encoder = nn.Sequential(
+            nn.Linear(seq_len * embedding_dim, hidden_dim),
+            nn.Dropout(p=dropout), 
+            nn.ReLU(),
+            nn.Linear(hidden_dim, hidden_dim),
+        )
+
+        self.noise = HadamardNoise(noise_std=noise_std)
+
+        self.decoder = nn.Sequential(
+            nn.Linear(hidden_dim, hidden_dim),
+            nn.Dropout(p=dropout), 
+            nn.ReLU(),
+            nn.Linear(hidden_dim, seq_len * num_classes) 
+        )
+
+        self.num_classes = num_classes
+        self.seq_len = seq_len
+        self.embedding_dim = embedding_dim
+
+    def forward(self, x):
+        embedded = self.embedding(x)
+        encoded = self.encoder(embedded.view((-1, self.seq_len * self.embedding_dim)))
+    
+        noised = self.noise(encoded) # this works as a regularizer
+       
+        decoded = self.decoder(noised)
+        decoded = decoded.view(-1, self.seq_len, self.num_classes)
+        
+        return decoded
+
 class AutoEncoderOneHot_model(nn.Module):
     def __init__(
         self, num_classes, seq_len,
@@ -104,6 +149,7 @@ class AutoEncoder_factory:
     __versions = {
         "one_hot": AutoEncoderOneHot_model,
         "simple": AutoEncoderSimple_model,
+        "embedding": AutoEncoderEmbedding_model,
     } 
 
     __model_hyper_params = {
@@ -111,15 +157,17 @@ class AutoEncoder_factory:
             noise_std = uniform(0.35, 0.35),
             dropout = uniform(0.25, 0.25),
             hidden_dim = range(5, 1000),
-            lr = loguniform(-3, 2),
-            weight_decay = loguniform(-2, 2),
         ),
-        "simple":dict(
+        "simple": dict(
             noise_std = uniform(0.35, 0.35),
             dropout = uniform(0.25, 0.25),
             hidden_dim = range(5, 1000),
-            lr = loguniform(-3, 2),
-            weight_decay = loguniform(-2, 2),
+        ),
+        "embedding": dict(
+            noise_std = uniform(0.35, 0.35),
+            dropout = uniform(0.25, 0.25),
+            hidden_dim = range(5, 1000),
+            embedding_dim = range(1, 500),
         ),
     }
 
@@ -128,7 +176,11 @@ class AutoEncoder_factory:
             lr = loguniform(-3, 2),
             weight_decay = loguniform(-2, 2),
         ),
-        "simple":dict(
+        "simple": dict(
+            lr = loguniform(-3, 2),
+            weight_decay = loguniform(-2, 2),
+        ),
+        "embedding": dict(
             lr = loguniform(-3, 2),
             weight_decay = loguniform(-2, 2),
         ),
@@ -190,7 +242,6 @@ class LSTM_model(nn.Module):
         c_0 = c_0.to(device)
         
         # Propagate input through LSTM
-        breakpoint()
         out, (hn, cn) = self.lstm(x, (h_0, c_0)) # lstm with input, hidden, and internal state
         flatten = torch.flatten(out, start_dim=1)
         noised = self.noise(flatten)

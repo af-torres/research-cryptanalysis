@@ -4,10 +4,8 @@ import torch
 import torch.nn as nn
 
 from torch.utils.data import TensorDataset, DataLoader
-from scipy.stats import uniform
-from mango.domain.distribution import loguniform
-from mango import scheduler, Tuner
 
+from mango import scheduler, Tuner
 
 import pickle
 import random
@@ -30,7 +28,7 @@ else:
 device = torch.device(dev)
 
 alphabet = string.printable
-model_version = "simple"
+model_version = "embedding"
 
 num_classes = 0
 seq_len = 0
@@ -38,12 +36,12 @@ num_epochs = 5_00
 train_id = uuid.uuid4().hex
 
 DATASETS = [
-#    {
-#        "DATASET_ENC": '../cryptanalysis_old/datasets/dtEnc10k.csv',
-#        "DATASET_ORI": '../cryptanalysis_old/datasets/dtOri10k.csv',
-#        "RESULTS_FILE": "./results/random/substitutionCipher-old-data.pkl",
-#        "NAME": "OLD-DATASET",
-#    },
+    {
+        "DATASET_ENC": '../cryptanalysis_old/datasets/dtEnc10k.csv',
+        "DATASET_ORI": '../cryptanalysis_old/datasets/dtOri10k.csv',
+        "RESULTS_FILE": "./results/random/substitutionCipher-old-data.pkl",
+        "NAME": "OLD-DATASET",
+    },
     {
         "DATASET_ENC": './data/random/substitutionCipherArr-encryptedRandomCharSeq.csv',
         "DATASET_ORI": './data/random/arr-decryptedRandomCharSeq.csv',
