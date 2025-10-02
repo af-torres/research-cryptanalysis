@@ -5,10 +5,11 @@ import torch.nn as nn
 
 from torch.utils.data import TensorDataset, DataLoader
 import random
-from model import AutoEncoder_factory, get_loss
-from datasets import load_dataset
 import string
 import time
+
+from model import build_auto_encoder as build_model, AutoEncoder_factory, get_loss
+from datasets import load_dataset
 from utils import load_results, get_accuracy, plot_acc_line
 
 if torch.cuda.is_available():
@@ -21,8 +22,8 @@ else:
 device = torch.device(dev)
 
 alphabet = string.printable
-model_version = "simple"
-train_id = "0324bc21b65b4472985be86cf5a0f56d"
+model_version = "embedding"
+train_id = "407e04f740e7487aa3cff407c0cd68dd"
 
 DATASETS = [
 #    {
@@ -69,36 +70,6 @@ DATASETS = [
     },
 ]
 
-def build_model(
-    num_classes, seq_len,
-    noise_std = 0.45,
-    dropout = 0.5,
-    hidden_dim = 150,
-    learning_rate = 1e-3,
-    weight_decay = 1e-2,
-):
-    padding_idx = 0
-
-    model = AutoEncoder_factory.get_model(
-        model_version,
-        num_classes=num_classes,
-        seq_len=seq_len,
-        hidden_dim=hidden_dim,
-        noise_std=noise_std,
-        dropout=dropout,
-        padding_idx=padding_idx,
-    )
-
-    lossFunc = nn.CrossEntropyLoss(ignore_index=padding_idx)
-    optimizer = torch.optim.AdamW(model.parameters(), lr=learning_rate, weight_decay=weight_decay)
-
-    return {
-        "model": model,
-        "lossFunc": lossFunc,
-        "optimizer": optimizer,
-    }
-
-
 for i, d in enumerate(DATASETS):
     torch.manual_seed(1234)
     random.seed(1234)
@@ -124,6 +95,7 @@ for i, d in enumerate(DATASETS):
 
     with open(f"results/reports/auto_encoder-{dataset_name}-{train_id}.md", "w") as report_file:
         build = build_model(
+            model_version,
             num_classes, seq_len,
             **hyper_params
         )

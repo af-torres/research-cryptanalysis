@@ -204,6 +204,41 @@ class AutoEncoder_factory:
     def get_loss_param_names(cls, version):
         return cls.__loss_hyper_params[version].keys()
 
+def get_config_subset_values(config, keys):
+    values = [config[k] for k in keys]
+    return dict(zip(keys, values))
+
+def build_auto_encoder(
+    model_version,
+    num_classes, seq_len,
+    padding_idx = 0,
+    **config
+):
+    model_config = get_config_subset_values(
+        config,
+        AutoEncoder_factory.get_model_param_names(model_version)
+    )
+    model = AutoEncoder_factory.get_model(
+        model_version,
+        num_classes=num_classes,
+        seq_len=seq_len,
+        padding_idx=padding_idx,
+        **model_config,
+    )
+    
+    loss_config = get_config_subset_values(
+        config,
+        AutoEncoder_factory.get_loss_param_names(model_version)
+    )
+    lossFunc = nn.CrossEntropyLoss(ignore_index=padding_idx)
+    optimizer = torch.optim.AdamW(model.parameters(), **loss_config)
+
+    return {
+        "model": model,
+        "lossFunc": lossFunc,
+        "optimizer": optimizer,
+    }
+
 class LSTM_model(nn.Module):
     def __init__(self, output_size, 
                  input_size, hidden_size, num_layers,

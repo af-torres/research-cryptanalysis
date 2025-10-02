@@ -11,7 +11,7 @@ import pickle
 import random
 import uuid
 
-from model import AutoEncoder_factory, get_loss
+from model import build_auto_encoder as build_model, AutoEncoder_factory, get_loss
 from datasets import load_dataset
 
 
@@ -36,12 +36,12 @@ num_epochs = 5_00
 train_id = uuid.uuid4().hex
 
 DATASETS = [
-    {
-        "DATASET_ENC": '../cryptanalysis_old/datasets/dtEnc10k.csv',
-        "DATASET_ORI": '../cryptanalysis_old/datasets/dtOri10k.csv',
-        "RESULTS_FILE": "./results/random/substitutionCipher-old-data.pkl",
-        "NAME": "OLD-DATASET",
-    },
+#    {
+#        "DATASET_ENC": '../cryptanalysis_old/datasets/dtEnc10k.csv',
+#        "DATASET_ORI": '../cryptanalysis_old/datasets/dtOri10k.csv',
+#        "RESULTS_FILE": "./results/random/substitutionCipher-old-data.pkl",
+#        "NAME": "OLD-DATASET",
+#    },
     {
         "DATASET_ENC": './data/random/substitutionCipherArr-encryptedRandomCharSeq.csv',
         "DATASET_ORI": './data/random/arr-decryptedRandomCharSeq.csv',
@@ -133,45 +133,12 @@ def train_model(
         "val_loss": val_loss,
     }
 
-def get_config_subset_values(config, keys):
-    values = [config[k] for k in keys]
-    return dict(zip(keys, values))
-
-def build_model(
-    num_classes, seq_len,
-    padding_idx = 0,
-    **config
-):
-    model_config = get_config_subset_values(
-        config,
-        AutoEncoder_factory.get_model_param_names(model_version)
-    )
-    model = AutoEncoder_factory.get_model(
-        model_version,
-        num_classes=num_classes,
-        seq_len=seq_len,
-        padding_idx=padding_idx,
-        **model_config,
-    )
-    
-    loss_config = get_config_subset_values(
-        config,
-        AutoEncoder_factory.get_loss_param_names(model_version)
-    )
-    lossFunc = nn.CrossEntropyLoss(ignore_index=padding_idx)
-    optimizer = torch.optim.AdamW(model.parameters(), **loss_config)
-
-    return {
-        "model": model,
-        "lossFunc": lossFunc,
-        "optimizer": optimizer,
-    }
-
 @scheduler.serial
 def objective(
     **build_kwargs
 ):
     config = build_model(
+        model_version,
         num_classes, seq_len,
         **build_kwargs
     )
@@ -213,6 +180,7 @@ for d in DATASETS:
     # Train the model and save results with best found parameters 
     params = results["best_params"]
     config = build_model(
+        model_version,
         num_classes, seq_len, **params
     )
     m = config.get("model")
