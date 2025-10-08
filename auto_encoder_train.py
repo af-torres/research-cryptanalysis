@@ -1,4 +1,5 @@
 import numpy as np
+import argparse
 
 import torch
 import torch.nn as nn
@@ -18,17 +19,43 @@ from datasets import load_dataset
 import string
 import time
 
+parser = argparse.ArgumentParser(
+    description="Script that takes a model_type argument."
+)
+parser.add_argument(
+    "--model_version",
+    type=str,
+    choices=[
+        "one_hot",
+        "simple",
+        "embedding",
+        "reduced_embedding",
+        "reduced_by_char_embedding",
+        "by_char_embedding",
+    ],
+    required=True,
+    help="Specify the model type. Must be one of: 'reduced' or 'simple'."
+)
+parser.add_argument(
+    "--device",
+    type=int,
+    default=0,
+    help="Specify the device number (0–4)."
+)
+args = parser.parse_args()
+
+
 if torch.cuda.is_available():
-    dev = "cuda"
+    dev = f"cuda:{args.device}"
     print('Running on CUDA')
 else: 
     dev = "cpu"
     print('Running on CPU')
-
 device = torch.device(dev)
 
-alphabet = string.printable
-model_version = "embedding"
+#alphabet = string.printable
+alphabet = string.ascii_lowercase + " "
+model_version = args.model_version
 
 num_classes = 0
 seq_len = 0
@@ -36,50 +63,72 @@ num_epochs = 5_00
 train_id = uuid.uuid4().hex
 
 DATASETS = [
+############################################################################################
 #    {
 #        "DATASET_ENC": '../cryptanalysis_old/datasets/dtEnc10k.csv',
 #        "DATASET_ORI": '../cryptanalysis_old/datasets/dtOri10k.csv',
 #        "RESULTS_FILE": "./results/random/substitutionCipher-old-data.pkl",
 #        "NAME": "OLD-DATASET",
 #    },
+############################################################################################
+    #alphabet = string.printable
+#    {
+#        "DATASET_ENC": './data/random/substitutionCipherArr-encryptedRandomCharSeq.csv',
+#        "DATASET_ORI": './data/random/arr-decryptedRandomCharSeq.csv',
+#        "RESULTS_DIR": "./results/random/",
+#        "NAME": "random-substitution",
+#    },
+#    {
+#        "DATASET_ENC": './data/random/transpositionCipherArr-encryptedRandomCharSeq.csv',
+#        "DATASET_ORI": './data/random/arr-decryptedRandomCharSeq.csv',
+#        "RESULTS_DIR": "./results/random/",
+#        "NAME": "random-transposition",
+#    },
+#    {
+#        "DATASET_ENC": './data/random/productCipherArr-encryptedRandomCharSeq.csv',
+#        "DATASET_ORI": './data/random/arr-decryptedRandomCharSeq.csv',
+#        "RESULTS_DIR": "./results/random/",
+#        "NAME": "random-product",
+#    },
+#    {
+#        "DATASET_ENC": './data/eng_sentences/substitutionCipherArr-encryptedEngSeq.csv',
+#        "DATASET_ORI": './data/eng_sentences/arr-decryptedEngSeq.csv',
+#        "RESULTS_DIR": "./results/eng_sentences/",
+#        "NAME": "eng_sentences-substitution",
+#    },
+#    {
+#        "DATASET_ENC": './data/eng_sentences/transpositionCipherArr-encryptedEngSeq.csv',
+#        "DATASET_ORI": './data/eng_sentences/arr-decryptedEngSeq.csv',
+#        "RESULTS_DIR": "./results/eng_sentences/",
+#        "NAME": "eng_sentences-transposition",
+#    },
+#    {
+#        "DATASET_ENC": './data/eng_sentences/productCipherArr-encryptedEngSeq.csv',
+#        "DATASET_ORI": './data/eng_sentences/arr-decryptedEngSeq.csv',
+#        "RESULTS_DIR": "./results/eng_sentences/",
+#        "NAME": "eng_sentences-product",
+#    },
+############################################################################################
+    # alphabet = string.ascii_lowercase + " "
     {
-        "DATASET_ENC": './data/random/substitutionCipherArr-encryptedRandomCharSeq.csv',
-        "DATASET_ORI": './data/random/arr-decryptedRandomCharSeq.csv',
+        "DATASET_ENC": './data/random/substitutionCipherArr-encryptedRandomAsciiCharSeq.csv',
+        "DATASET_ORI": './data/random/arr-decryptedRandomAsciiCharSeq.csv',
         "RESULTS_DIR": "./results/random/",
         "NAME": "random-substitution",
     },
     {
-        "DATASET_ENC": './data/random/transpositionCipherArr-encryptedRandomCharSeq.csv',
-        "DATASET_ORI": './data/random/arr-decryptedRandomCharSeq.csv',
+        "DATASET_ENC": './data/random/transpositionCipherArr-encryptedRandomAsciiCharSeq.csv',
+        "DATASET_ORI": './data/random/arr-decryptedRandomAsciiCharSeq.csv',
         "RESULTS_DIR": "./results/random/",
         "NAME": "random-transposition",
     },
     {
-        "DATASET_ENC": './data/random/productCipherArr-encryptedRandomCharSeq.csv',
-        "DATASET_ORI": './data/random/arr-decryptedRandomCharSeq.csv',
+        "DATASET_ENC": './data/random/productCipherArr-encryptedRandomAsciiCharSeq.csv',
+        "DATASET_ORI": './data/random/arr-decryptedRandomAsciiCharSeq.csv',
         "RESULTS_DIR": "./results/random/",
         "NAME": "random-product",
     },
-    {
-        "DATASET_ENC": './data/eng_sentences/substitutionCipherArr-encryptedEngSeq.csv',
-        "DATASET_ORI": './data/eng_sentences/arr-decryptedEngSeq.csv',
-        "RESULTS_DIR": "./results/eng_sentences/",
-        "NAME": "eng_sentences-substitution",
-    },
-    {
-        "DATASET_ENC": './data/eng_sentences/transpositionCipherArr-encryptedEngSeq.csv',
-        "DATASET_ORI": './data/eng_sentences/arr-decryptedEngSeq.csv',
-        "RESULTS_DIR": "./results/eng_sentences/",
-        "NAME": "eng_sentences-transposition",
-    },
-    {
-        "DATASET_ENC": './data/eng_sentences/productCipherArr-encryptedEngSeq.csv',
-        "DATASET_ORI": './data/eng_sentences/arr-decryptedEngSeq.csv',
-        "RESULTS_DIR": "./results/eng_sentences/",
-        "NAME": "eng_sentences-product",
-    },
 ]
-
 
 def train_model(
     model, lossFunc, optimizer,
@@ -160,7 +209,7 @@ for d in DATASETS:
     torch.manual_seed(1234)
     random.seed(1234)
 
-    train, validation, _ = load_dataset(d.get("DATASET_ORI"), d.get("DATASET_ENC"))
+    train, validation, _ = load_dataset(d.get("DATASET_ORI"), d.get("DATASET_ENC"), device)
     X_tr, Y_tr = train
     X_vl, Y_vl = validation
 
@@ -192,7 +241,7 @@ for d in DATASETS:
         num_epochs, verbose=True
     ) | {"hyper-params": params}
 
-    # write weights and training results file
+    # Write weights and training results file
     results_dir = d.get("RESULTS_DIR", "")
     dataset_name = d.get("NAME")
     results_file = results_dir + f"{model_version}/"  + dataset_name + "-autoencoder-" + train_id + ".pkl"
@@ -200,3 +249,5 @@ for d in DATASETS:
         pickle.dump(training_results, file)
         print(f"wrote results file {results_file}")
 
+with open("training_log", "a") as file:
+    file.write(f"{train_id}: {model_version}\n")

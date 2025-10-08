@@ -21,52 +21,76 @@ else:
 
 device = torch.device(dev)
 
-alphabet = string.printable
+# alphabet = string.printable
+alphabet = string.ascii_lowercase + " "
 model_version = "embedding"
-train_id = "407e04f740e7487aa3cff407c0cd68dd"
+train_id = "e060c1af6f1d407c8c56c4d2cc934708"
 
 DATASETS = [
+############################################################################################
 #    {
 #        "DATASET_ENC": '../cryptanalysis_old/datasets/dtEnc10k.csv',
 #        "DATASET_ORI": '../cryptanalysis_old/datasets/dtOri10k.csv',
 #        "RESULTS_FILE": "./results/random/substitutionCipher-old-data.pkl",
 #        "NAME": "OLD-DATASET",
 #    },
+############################################################################################
+    #alphabet = string.printable
+#    {
+#        "DATASET_ENC": './data/random/substitutionCipherArr-encryptedRandomCharSeq.csv',
+#        "DATASET_ORI": './data/random/arr-decryptedRandomCharSeq.csv',
+#        "RESULTS_DIR": "./results/random/",
+#        "NAME": "random-substitution",
+#    },
+#    {
+#        "DATASET_ENC": './data/random/transpositionCipherArr-encryptedRandomCharSeq.csv',
+#        "DATASET_ORI": './data/random/arr-decryptedRandomCharSeq.csv',
+#        "RESULTS_DIR": "./results/random/",
+#        "NAME": "random-transposition",
+#    },
+#    {
+#        "DATASET_ENC": './data/random/productCipherArr-encryptedRandomCharSeq.csv',
+#        "DATASET_ORI": './data/random/arr-decryptedRandomCharSeq.csv',
+#        "RESULTS_DIR": "./results/random/",
+#        "NAME": "random-product",
+#    },
+#    {
+#        "DATASET_ENC": './data/eng_sentences/substitutionCipherArr-encryptedEngSeq.csv',
+#        "DATASET_ORI": './data/eng_sentences/arr-decryptedEngSeq.csv',
+#        "RESULTS_DIR": "./results/eng_sentences/",
+#        "NAME": "eng_sentences-substitution",
+#    },
+#    {
+#        "DATASET_ENC": './data/eng_sentences/transpositionCipherArr-encryptedEngSeq.csv',
+#        "DATASET_ORI": './data/eng_sentences/arr-decryptedEngSeq.csv',
+#        "RESULTS_DIR": "./results/eng_sentences/",
+#        "NAME": "eng_sentences-transposition",
+#    },
+#    {
+#        "DATASET_ENC": './data/eng_sentences/productCipherArr-encryptedEngSeq.csv',
+#        "DATASET_ORI": './data/eng_sentences/arr-decryptedEngSeq.csv',
+#        "RESULTS_DIR": "./results/eng_sentences/",
+#        "NAME": "eng_sentences-product",
+#    },
+############################################################################################
+    # alphabet = string.ascii_lowercase + " "
     {
-        "DATASET_ENC": './data/random/substitutionCipherArr-encryptedRandomCharSeq.csv',
-        "DATASET_ORI": './data/random/arr-decryptedRandomCharSeq.csv',
+        "DATASET_ENC": './data/random/substitutionCipherArr-encryptedRandomAsciiCharSeq.csv',
+        "DATASET_ORI": './data/random/arr-decryptedRandomAsciiCharSeq.csv',
         "RESULTS_DIR": "./results/random/",
         "NAME": "random-substitution",
     },
     {
-        "DATASET_ENC": './data/random/transpositionCipherArr-encryptedRandomCharSeq.csv',
-        "DATASET_ORI": './data/random/arr-decryptedRandomCharSeq.csv',
+        "DATASET_ENC": './data/random/transpositionCipherArr-encryptedRandomAsciiCharSeq.csv',
+        "DATASET_ORI": './data/random/arr-decryptedRandomAsciiCharSeq.csv',
         "RESULTS_DIR": "./results/random/",
         "NAME": "random-transposition",
     },
     {
-        "DATASET_ENC": './data/random/productCipherArr-encryptedRandomCharSeq.csv',
-        "DATASET_ORI": './data/random/arr-decryptedRandomCharSeq.csv',
+        "DATASET_ENC": './data/random/productCipherArr-encryptedRandomAsciiCharSeq.csv',
+        "DATASET_ORI": './data/random/arr-decryptedRandomAsciiCharSeq.csv',
         "RESULTS_DIR": "./results/random/",
         "NAME": "random-product",
-    },
-    {
-        "DATASET_ENC": './data/eng_sentences/substitutionCipherArr-encryptedEngSeq.csv',
-        "DATASET_ORI": './data/eng_sentences/arr-decryptedEngSeq.csv',
-        "RESULTS_DIR": "./results/eng_sentences/",
-        "NAME": "eng_sentences-substitution",
-    },
-    {
-        "DATASET_ENC": './data/eng_sentences/transpositionCipherArr-encryptedEngSeq.csv',
-        "DATASET_ORI": './data/eng_sentences/arr-decryptedEngSeq.csv',
-        "RESULTS_DIR": "./results/eng_sentences/",
-        "NAME": "eng_sentences-transposition",
-    },
-    {
-        "DATASET_ENC": './data/eng_sentences/productCipherArr-encryptedEngSeq.csv',
-        "DATASET_ORI": './data/eng_sentences/arr-decryptedEngSeq.csv',
-        "RESULTS_DIR": "./results/eng_sentences/",
-        "NAME": "eng_sentences-product",
     },
 ]
 

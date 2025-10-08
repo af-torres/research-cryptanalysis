@@ -65,6 +65,128 @@ class AutoEncoderSimple_model(nn.Module):
         
         return decoded
 
+class AutoEncoderEmbeddingReduced_model(nn.Module):
+    def __init__(
+        self, num_classes, seq_len,
+        embedding_dim=120,
+        hidden_dim=64,
+        noise_std=0.1, dropout=0.2,
+        padding_idx=0,
+    ):
+        super(AutoEncoderEmbeddingReduced_model, self).__init__()
+
+        self.embedding = nn.Embedding(num_classes, embedding_dim, padding_idx)
+        self.encoder = nn.Sequential(
+            nn.Linear(seq_len * embedding_dim, hidden_dim),
+            nn.Dropout(p=dropout), 
+            nn.ReLU(),
+        )
+
+        self.noise = HadamardNoise(noise_std=noise_std)
+
+        self.decoder = nn.Sequential(
+            nn.Linear(hidden_dim, seq_len * num_classes),
+            nn.Dropout(p=dropout), 
+            nn.ReLU(),
+        )
+
+        self.num_classes = num_classes
+        self.seq_len = seq_len
+        self.embedding_dim = embedding_dim
+
+    def forward(self, x):
+        embedded = self.embedding(x)
+        encoded = self.encoder(embedded.view((-1, self.seq_len * self.embedding_dim)))
+    
+        noised = self.noise(encoded) # this works as a regularizer
+       
+        decoded = self.decoder(noised)
+        decoded = decoded.view(-1, self.seq_len, self.num_classes)
+        
+        return decoded
+
+class AutoEncoderEmbeddingReducedByChar_model(nn.Module):
+    def __init__(
+        self, num_classes, seq_len,
+        embedding_dim=120,
+        hidden_dim=64,
+        noise_std=0.1, dropout=0.2,
+        padding_idx=0,
+    ):
+        super(AutoEncoderEmbeddingReducedByChar_model, self).__init__()
+
+        self.embedding = nn.Embedding(num_classes, embedding_dim, padding_idx)
+        self.encoder = nn.Sequential(
+            nn.Linear(embedding_dim, hidden_dim),
+            nn.Dropout(p=dropout), 
+            nn.ReLU(),
+        )
+
+        self.noise = HadamardNoise(noise_std=noise_std)
+
+        self.decoder = nn.Sequential(
+            nn.Linear(hidden_dim, num_classes),
+            nn.Dropout(p=dropout), 
+            nn.ReLU(),
+        )
+
+        self.num_classes = num_classes
+        self.seq_len = seq_len
+        self.embedding_dim = embedding_dim
+
+    def forward(self, x):
+        embedded = self.embedding(x)
+        encoded = self.encoder(embedded.view((-1, self.embedding_dim)))
+    
+        noised = self.noise(encoded) # this works as a regularizer
+       
+        decoded = self.decoder(noised)
+        decoded = decoded.view(-1, self.seq_len, self.num_classes)
+        
+        return decoded
+
+class AutoEncoderEmbeddingByChar_model(nn.Module):
+    def __init__(
+        self, num_classes, seq_len,
+        embedding_dim=120,
+        hidden_dim=64,
+        noise_std=0.1, dropout=0.2,
+        padding_idx=0,
+    ):
+        super(AutoEncoderEmbeddingByChar_model, self).__init__()
+
+        self.embedding = nn.Embedding(num_classes, embedding_dim, padding_idx)
+        self.encoder = nn.Sequential(
+            nn.Linear(embedding_dim, hidden_dim),
+            nn.Dropout(p=dropout), 
+            nn.ReLU(),
+            nn.Linear(hidden_dim, hidden_dim),
+        )
+
+        self.noise = HadamardNoise(noise_std=noise_std)
+
+        self.decoder = nn.Sequential(
+            nn.Linear(hidden_dim, hidden_dim),
+            nn.Dropout(p=dropout), 
+            nn.ReLU(),
+            nn.Linear(hidden_dim, num_classes) 
+        )
+
+        self.num_classes = num_classes
+        self.seq_len = seq_len
+        self.embedding_dim = embedding_dim
+
+    def forward(self, x):
+        embedded = self.embedding(x)
+        encoded = self.encoder(embedded.view((-1, self.embedding_dim)))
+    
+        noised = self.noise(encoded) # this works as a regularizer
+       
+        decoded = self.decoder(noised)
+        decoded = decoded.view(-1, self.seq_len, self.num_classes)
+        
+        return decoded
+
 class AutoEncoderEmbedding_model(nn.Module):
     def __init__(
         self, num_classes, seq_len,
@@ -150,6 +272,9 @@ class AutoEncoder_factory:
         "one_hot": AutoEncoderOneHot_model,
         "simple": AutoEncoderSimple_model,
         "embedding": AutoEncoderEmbedding_model,
+        "reduced_embedding": AutoEncoderEmbeddingReduced_model,
+        "reduced_by_char_embedding": AutoEncoderEmbeddingReducedByChar_model,
+        "by_char_embedding": AutoEncoderEmbeddingByChar_model,
     } 
 
     __model_hyper_params = {
@@ -159,13 +284,31 @@ class AutoEncoder_factory:
             hidden_dim = range(5, 1000),
         ),
         "simple": dict(
-            noise_std = uniform(0.35, 0.35),
-            dropout = uniform(0.25, 0.25),
+            noise_std = np.arange(0, 0.75, 0.05),
+            dropout = np.arange(0, 0.75, 0.05),
             hidden_dim = range(5, 1000),
         ),
         "embedding": dict(
-            noise_std = uniform(0.35, 0.35),
-            dropout = uniform(0.25, 0.25),
+            noise_std = np.arange(0, 0.75, 0.05),
+            dropout = np.arange(0, 0.75, 0.05),
+            hidden_dim = range(5, 1000),
+            embedding_dim = range(1, 500),
+        ),
+        "reduced_embedding": dict(
+            noise_std = np.arange(0, 0.75, 0.05),
+            dropout = np.arange(0, 0.75, 0.05),
+            hidden_dim = range(5, 1000),
+            embedding_dim = range(1, 500),
+        ),
+        "reduced_by_char_embedding": dict(
+            noise_std = np.arange(0, 0.75, 0.05),
+            dropout = np.arange(0, 0.75, 0.05),
+            hidden_dim = range(5, 1000),
+            embedding_dim = range(1, 500),
+        ),
+        "by_char_embedding": dict(
+            noise_std = np.arange(0, 0.75, 0.05),
+            dropout = np.arange(0, 0.75, 0.05),
             hidden_dim = range(5, 1000),
             embedding_dim = range(1, 500),
         ),
@@ -184,6 +327,14 @@ class AutoEncoder_factory:
             lr = loguniform(-3, 2),
             weight_decay = loguniform(-2, 2),
         ),
+        "reduced_embedding": dict(
+            lr = loguniform(-3, 2),
+            weight_decay = loguniform(-2, 2),
+        ),
+        "default": dict(
+            lr = loguniform(-3, 2),
+            weight_decay = loguniform(-2, 2),
+        ),
     }
 
     @classmethod
@@ -194,7 +345,7 @@ class AutoEncoder_factory:
 
     @classmethod
     def get_hyper_param_space(cls, version):
-        return cls.__model_hyper_params[version] | cls.__loss_hyper_params[version]
+        return cls.__model_hyper_params[version] | (cls.__loss_hyper_params["default"] if cls.__loss_hyper_params.get(version, "") == "" else cls.__loss_hyper_params[version])
 
     @classmethod
     def get_model_param_names(cls, version):
@@ -202,6 +353,7 @@ class AutoEncoder_factory:
 
     @classmethod
     def get_loss_param_names(cls, version):
+        if cls.__loss_hyper_params.get(version, "") == "": return cls.__loss_hyper_params["default"].keys()
         return cls.__loss_hyper_params[version].keys()
 
 def get_config_subset_values(config, keys):

@@ -5,11 +5,12 @@ import string
 from utils import encrypt_sequences, write_sequence, \
     write_key, seq_to_numpy, write_sequence_arr
 
-ECN_FILE_NAME = "encryptedRandomCharSeq.csv"
-DEC_FILE_NAME = "decryptedRandomCharSeq.csv"
-KEY_FILE_NAME = "key10k.txt"
+ECN_FILE_NAME = "encryptedRandomAsciiCharSeq.csv"
+DEC_FILE_NAME = "decryptedRandomAsciiCharSeq.csv"
+KEY_FILE_NAME = "keyAscii10k.txt"
 
-alphabet = string.printable
+#alphabet = string.printable
+alphabet = string.ascii_lowercase + " "
 min_seq_len = 3
 max_seq_len = 73
 n = 10000
