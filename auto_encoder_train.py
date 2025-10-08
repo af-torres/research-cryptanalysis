@@ -15,9 +15,9 @@ import uuid
 from model import build_auto_encoder as build_model, AutoEncoder_factory, get_loss
 from datasets import load_dataset
 
-
 import string
 import time
+import os
 
 parser = argparse.ArgumentParser(
     description="Script that takes a model_type argument."
@@ -245,6 +245,7 @@ for d in DATASETS:
     results_dir = d.get("RESULTS_DIR", "")
     dataset_name = d.get("NAME")
     results_file = results_dir + f"{model_version}/"  + dataset_name + "-autoencoder-" + train_id + ".pkl"
+    os.makedirs(os.path.dirname(results_file), exist_ok=True)
     with open(results_file, "wb") as file:
         pickle.dump(training_results, file)
         print(f"wrote results file {results_file}")

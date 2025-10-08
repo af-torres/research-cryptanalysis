@@ -23,8 +23,8 @@ device = torch.device(dev)
 
 # alphabet = string.printable
 alphabet = string.ascii_lowercase + " "
-model_version = "embedding"
-train_id = "e060c1af6f1d407c8c56c4d2cc934708"
+model_version = "simple"
+train_id = "088823803a2447ee89703b438771e050"
 
 DATASETS = [
 ############################################################################################
