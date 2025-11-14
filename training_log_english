@@ -1,0 +1,6 @@
+b9ade6d264804ac2a9124c4cb1902c6a: model=simple; input_noise=0.0
+1cfde40dd2494ea0b2cc0ced19143005: model=one_hot; input_noise=0.0
+34473ab5d1e147a9b6de540cef9feaed: model=reduced_embedding; input_noise=0.0
+d21e04bdc9184d9ebb73cce45f0f9659: model=embedding; input_noise=0.0
+c12e02bb30e44d588ec19746bd8f265b: model=reduced_by_char_embedding; input_noise=0.0
+d408fbf02393401e80bc54d6a834d98f: model=by_char_embedding; input_noise=0.0

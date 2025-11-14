@@ -1,0 +1,16 @@
+6bd5a78a22dd4d07b9d0f43f67ab5601: model=reduced_by_char_embedding; input_noise=0.5
+375d6f83b4c2461bac9f8811ce27b3d7: model=reduced_by_char_embedding; input_noise=0.1
+a15dd646f7b64f369093936bff027410: model=reduced_by_char_embedding; input_noise=0.4
+4e7d1de3c54042288138311169754ab6: model=reduced_by_char_embedding; input_noise=0.3
+250ab8af7fc74d38b76e5f5e0c4d403f: model=reduced_by_char_embedding; input_noise=0.2
+56fa7c5652c747659d99285ef91311c9: model=reduced_by_char_embedding; input_noise=0.6
+322275efee664e28b4e7aac900cb9475: model=reduced_by_char_embedding; input_noise=0.7
+576b4f956b044976b938259fbc8dd2bc: model=reduced_by_char_embedding; input_noise=0.8
+24e2e6f5481e46eebbd322e86362977a: model=by_char_embedding; input_noise=0.6
+d3e0aca4081b4aa5b9b178dcfeee38b5: model=by_char_embedding; input_noise=0.2
+a1f3b16c763d454fa5acffdb6cde5715: model=by_char_embedding; input_noise=0.4
+c469890df50f40ecbc1f87fe72acc36c: model=by_char_embedding; input_noise=0.8
+b12c4a27186b40948886fb6a0b841c1f: model=by_char_embedding; input_noise=0.3
+908694cd6c7c455799c303e590c212f7: model=by_char_embedding; input_noise=0.7
+2c8ea2e4a64844c599c554a40fda9a84: model=by_char_embedding; input_noise=0.1
+1ad027c7b86a4f1f84d98fe999579255: model=by_char_embedding; input_noise=0.5

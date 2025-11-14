@@ -5,7 +5,6 @@ import string
 import pickle
 import matplotlib.pyplot as plt
 
-
 DATA_DIR = "./data/"
 
 def seq_to_numpy(sequences, alphabet=string.printable):

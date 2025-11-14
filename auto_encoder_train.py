@@ -18,9 +18,10 @@ from datasets import load_dataset
 import string
 import time
 import os
+import math
 
 parser = argparse.ArgumentParser(
-    description="Script that takes a model_type argument."
+    description="Script that trains a specified model with defined training configuration."
 )
 parser.add_argument(
     "--model_version",
@@ -37,11 +38,18 @@ parser.add_argument(
     help="Specify the model type. Must be one of: 'reduced' or 'simple'."
 )
 parser.add_argument(
+    "--input_noise",
+    type=float,
+    default=0.0,
+    help="Specify the percentage of noise perturbation to add to inputs (0-1)."
+)
+parser.add_argument(
     "--device",
     type=int,
     default=0,
     help="Specify the device number (0–4)."
 )
+
 args = parser.parse_args()
 
 
@@ -56,6 +64,7 @@ device = torch.device(dev)
 #alphabet = string.printable
 alphabet = string.ascii_lowercase + " "
 model_version = args.model_version
+input_noise_p = args.input_noise
 
 num_classes = 0
 seq_len = 0
@@ -71,63 +80,45 @@ DATASETS = [
 #        "NAME": "OLD-DATASET",
 #    },
 ############################################################################################
-    #alphabet = string.printable
+#    # alphabet = string.ascii_lowercase + " "
+    {
+        "DATASET_ENC": './data/eng_sentences/substitutionCipherArr-encryptedEngSeq.csv',
+        "DATASET_ORI": './data/eng_sentences/arr-decryptedEngSeq.csv',
+        "RESULTS_DIR": "./results/eng_sentences/",
+        "NAME": "eng_sentences-substitution",
+    },
+    {
+        "DATASET_ENC": './data/eng_sentences/transpositionCipherArr-encryptedEngSeq.csv',
+        "DATASET_ORI": './data/eng_sentences/arr-decryptedEngSeq.csv',
+        "RESULTS_DIR": "./results/eng_sentences/",
+        "NAME": "eng_sentences-transposition",
+    },
+    {
+        "DATASET_ENC": './data/eng_sentences/productCipherArr-encryptedEngSeq.csv',
+        "DATASET_ORI": './data/eng_sentences/arr-decryptedEngSeq.csv',
+        "RESULTS_DIR": "./results/eng_sentences/",
+        "NAME": "eng_sentences-product",
+    },
+############################################################################################
+#    # alphabet = string.ascii_lowercase + " "
 #    {
-#        "DATASET_ENC": './data/random/substitutionCipherArr-encryptedRandomCharSeq.csv',
-#        "DATASET_ORI": './data/random/arr-decryptedRandomCharSeq.csv',
+#        "DATASET_ENC": './data/random/substitutionCipherArr-encryptedRandomAsciiCharSeq.csv',
+#        "DATASET_ORI": './data/random/arr-decryptedRandomAsciiCharSeq.csv',
 #        "RESULTS_DIR": "./results/random/",
 #        "NAME": "random-substitution",
 #    },
 #    {
-#        "DATASET_ENC": './data/random/transpositionCipherArr-encryptedRandomCharSeq.csv',
-#        "DATASET_ORI": './data/random/arr-decryptedRandomCharSeq.csv',
+#        "DATASET_ENC": './data/random/transpositionCipherArr-encryptedRandomAsciiCharSeq.csv',
+#        "DATASET_ORI": './data/random/arr-decryptedRandomAsciiCharSeq.csv',
 #        "RESULTS_DIR": "./results/random/",
 #        "NAME": "random-transposition",
 #    },
 #    {
-#        "DATASET_ENC": './data/random/productCipherArr-encryptedRandomCharSeq.csv',
-#        "DATASET_ORI": './data/random/arr-decryptedRandomCharSeq.csv',
+#        "DATASET_ENC": './data/random/productCipherArr-encryptedRandomAsciiCharSeq.csv',
+#        "DATASET_ORI": './data/random/arr-decryptedRandomAsciiCharSeq.csv',
 #        "RESULTS_DIR": "./results/random/",
 #        "NAME": "random-product",
 #    },
-#    {
-#        "DATASET_ENC": './data/eng_sentences/substitutionCipherArr-encryptedEngSeq.csv',
-#        "DATASET_ORI": './data/eng_sentences/arr-decryptedEngSeq.csv',
-#        "RESULTS_DIR": "./results/eng_sentences/",
-#        "NAME": "eng_sentences-substitution",
-#    },
-#    {
-#        "DATASET_ENC": './data/eng_sentences/transpositionCipherArr-encryptedEngSeq.csv',
-#        "DATASET_ORI": './data/eng_sentences/arr-decryptedEngSeq.csv',
-#        "RESULTS_DIR": "./results/eng_sentences/",
-#        "NAME": "eng_sentences-transposition",
-#    },
-#    {
-#        "DATASET_ENC": './data/eng_sentences/productCipherArr-encryptedEngSeq.csv',
-#        "DATASET_ORI": './data/eng_sentences/arr-decryptedEngSeq.csv',
-#        "RESULTS_DIR": "./results/eng_sentences/",
-#        "NAME": "eng_sentences-product",
-#    },
-############################################################################################
-    # alphabet = string.ascii_lowercase + " "
-    {
-        "DATASET_ENC": './data/random/substitutionCipherArr-encryptedRandomAsciiCharSeq.csv',
-        "DATASET_ORI": './data/random/arr-decryptedRandomAsciiCharSeq.csv',
-        "RESULTS_DIR": "./results/random/",
-        "NAME": "random-substitution",
-    },
-    {
-        "DATASET_ENC": './data/random/transpositionCipherArr-encryptedRandomAsciiCharSeq.csv',
-        "DATASET_ORI": './data/random/arr-decryptedRandomAsciiCharSeq.csv',
-        "RESULTS_DIR": "./results/random/",
-        "NAME": "random-transposition",
-    },
-    {
-        "DATASET_ENC": './data/random/productCipherArr-encryptedRandomAsciiCharSeq.csv',
-        "DATASET_ORI": './data/random/arr-decryptedRandomAsciiCharSeq.csv',
-        "RESULTS_DIR": "./results/random/",
-        "NAME": "random-product",
-    },
 ]
 
 def train_model(
@@ -209,7 +200,7 @@ for d in DATASETS:
     torch.manual_seed(1234)
     random.seed(1234)
 
-    train, validation, _ = load_dataset(d.get("DATASET_ORI"), d.get("DATASET_ENC"), device)
+    train, validation, _ = load_dataset(d.get("DATASET_ORI"), d.get("DATASET_ENC"), device, input_noise_p)
     X_tr, Y_tr = train
     X_vl, Y_vl = validation
 
@@ -251,4 +242,4 @@ for d in DATASETS:
         print(f"wrote results file {results_file}")
 
 with open("training_log", "a") as file:
-    file.write(f"{train_id}: {model_version}\n")
+    file.write(f"{train_id}: model={model_version}; input_noise={input_noise_p}\n")

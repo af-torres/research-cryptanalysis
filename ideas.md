@@ -1,4 +1,4 @@
-## List of simple ciphers
+## List of ciphers
 
 1. Substitution cipher
 2. Transposition cipher

@@ -3,11 +3,21 @@ import random
 import torch
 import numpy as np
 
+def add_input_noise(X, input_noise=0, padding_val=0):
+    replace = np.random.binomial(1, input_noise, size=X.shape) & (X != 0)
+    unique = np.unique(X)
+    
+    random_samples = np.random.choice(unique, size=X.shape, replace=True)
+    X_noised = np.where(replace, random_samples, X)
+    return X_noised
+
 def load_dataset(
     decrypted_arr_file, encrypted_arr_file, 
-    device="cuda" if torch.cuda.is_available() else "cpu"
+    device="cuda" if torch.cuda.is_available() else "cpu",
+    input_noise=0
 ):
     X = pd.read_csv(encrypted_arr_file, header=None).to_numpy()
+    X = add_input_noise(X, input_noise)
     Y = pd.read_csv(decrypted_arr_file, header=None).to_numpy()
     n = X.shape[0]
 

@@ -10,7 +10,8 @@ ECN_FILE_NAME = "encryptedEngSeq.csv"
 DEC_FILE_NAME = "decryptedEngSeq.csv"
 KEY_FILE_NAME = "keyEngSeq.txt"
 
-alphabet = string.printable
+#alphabet = string.printable
+alphabet = string.ascii_lowercase + " "
 
 # This came from previous descriptive analysis of this dataset:
 min_seq_len = 3
@@ -23,7 +24,8 @@ def read_english_sentences():
 
     sentences = []
     for line in lines:
-        sentences.append(line.strip())
+        line = line.strip().lower()
+        sentences.append("".join(c if c in alphabet else " " for c in line))
 
     return sentences
 

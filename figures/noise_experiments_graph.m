@@ -1,0 +1,70 @@
+% Data (as provided)
+models = {'ReducedByChar', 'ByChar'};
+noise = [0.0 0.1 0.2 0.3 0.4 0.5 0.6 0.7 0.8];
+
+% === RANDOM SENTENCES ===
+
+%acc_sub_reduced = [0.962 0.904 0.805 0.580 0.501 0.497 0.325 0.292 0.220];
+%acc_trans_reduced = [1.000 0.802 0.719 0.658 0.522 0.494 0.407 0.278 0.213];
+%acc_prod_reduced = [1.000 0.872 0.745 0.715 0.615 0.481 0.422 0.285 0.199];
+
+%acc_sub_bychar = [1.000 0.904 0.808 0.714 0.613 0.516 0.423 0.328 0.232];
+%acc_trans_bychar = [1.000 0.902 0.806 0.707 0.615 0.512 0.427 0.328 0.227];
+%acc_prod_bychar = [1.000 0.902 0.805 0.711 0.617 0.514 0.427 0.328 0.227];
+
+% === ENGLISH SENTENCES ===
+
+% === ReducedByChar (testing accuracies, truncated) ===
+acc_sub_reduced = [0.971 0.797 0.817 0.705 0.577 0.524 0.441 0.345 0.269];
+acc_trans_reduced = [0.998 0.907 0.789 0.715 0.575 0.529 0.433 0.349 0.267];
+acc_prod_reduced = [0.819 0.853 0.806 0.588 0.622 0.504 0.424 0.352 0.265];
+
+
+% === ByCharEmbedding (testing accuracies, truncated) ===
+acc_sub_bychar = [1.000 0.904 0.804 0.720 0.631 0.533 0.438 0.350 0.273];
+acc_trans_bychar = [1.000 0.912 0.812 0.721 0.633 0.539 0.438 0.355 0.271];
+acc_prod_bychar = [1.000 0.902 0.815 0.717 0.629 0.535 0.440 0.353 0.277];
+
+
+% Create the figure
+figure('Color','white');
+hold on; grid on;
+
+% Plot ReducedByChar (solid lines)
+p1 = plot(noise, acc_sub_reduced, '-o', 'LineWidth', 1.8, 'MarkerSize', 6);
+p2 = plot(noise, acc_trans_reduced, '-s', 'LineWidth', 1.8, 'MarkerSize', 6);
+p3 = plot(noise, acc_prod_reduced, '-^', 'LineWidth', 1.8, 'MarkerSize', 6);
+
+% Plot ByChar (dashed lines)
+p4 = plot(noise, acc_sub_bychar, '--o', 'LineWidth', 1.8, 'MarkerSize', 6);
+p5 = plot(noise, acc_trans_bychar, '--s', 'LineWidth', 1.8, 'MarkerSize', 6);
+p6 = plot(noise, acc_prod_bychar, '--^', 'LineWidth', 1.8, 'MarkerSize', 6);
+
+% Axis labels
+xlabel('Noise Level', 'FontSize', 12, 'FontWeight', 'bold');
+ylabel('Test Accuracy', 'FontSize', 12, 'FontWeight', 'bold');
+
+% Axis limits
+xlim([0 0.8]);
+ylim([0 1.05]);
+
+% Title (optional for paper figures)
+% title('Effect of Noise on Test Accuracy', 'FontSize', 13, 'FontWeight', 'bold');
+
+% Legend (compact and clear)
+legend([p1 p2 p3 p4 p5 p6], ...
+{'ReducedByChar - Substitution', ...
+ 'ReducedByChar - Transposition', ...
+ 'ReducedByChar - Product', ...
+ 'ByChar - Substitution', ...
+ 'ByChar - Transposition', ...
+ 'ByChar - Product'}, ...
+ 'Location', 'southwest', 'FontSize', 10, 'Box', 'off');
+
+% Publication formatting
+set(gca, 'FontName', 'Times', 'FontSize', 11, 'LineWidth', 1);
+set(gcf, 'Position', [100 100 600 400]);
+
+hold off;
+
+savefig("noise_experiments_english.fig");
