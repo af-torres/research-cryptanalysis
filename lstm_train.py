@@ -1,4 +1,5 @@
 import numpy as np
+import argparse
 
 import torch
 import torch.nn as nn
@@ -11,49 +12,85 @@ from datasets import load_dataset
 import string
 import time
 
+parser = argparse.ArgumentParser(
+    description="Script that trains a specified model with defined training configuration."
+)
+parser.add_argument(
+    "--input_noise",
+    type=float,
+    default=0.0,
+    help="Specify the percentage of noise perturbation to add to inputs (0-1)."
+)
+parser.add_argument(
+    "--device",
+    type=int,
+    default=0,
+    help="Specify the device number (0–4)."
+)
+
+args = parser.parse_args()
+
 if torch.cuda.is_available():
-    dev = "cuda"
+    dev = f"cuda:{args.device}"
     print('Running on CUDA')
 else: 
     dev = "cpu"
     print('Running on CPU')
-
 device = torch.device(dev)
 
-noise_std = np.array(range(0, 45, 5)) / 100
-alphabet = string.printable
+#alphabet = string.printable
+alphabet = string.ascii_lowercase + " "
+model_version = args.model_version
+input_noise_p = args.input_noise
 
 DATASETS = [
-    {
-        "DATASET_ENC": './data/random/substitutionCipherArr-encryptedRandomCharSeq.csv',
-        "DATASET_ORI": './data/random/arr-decryptedRandomCharSeq.csv',
-        "RESULTS_FILE": "./results/random/lstm-substitutionCipher.pkl",
-    },
-    {
-        "DATASET_ENC": './data/random/transpositionCipherArr-encryptedRandomCharSeq.csv',
-        "DATASET_ORI": './data/random/arr-decryptedRandomCharSeq.csv',
-        "RESULTS_FILE": "./results/random/lstm-transpositionCipher.pkl",
-    },
-    {
-        "DATASET_ENC": './data/random/productCipherArr-encryptedRandomCharSeq.csv',
-        "DATASET_ORI": './data/random/arr-decryptedRandomCharSeq.csv',
-        "RESULTS_FILE": "./results/random/lstm-productCipher.pkl",
-    },
+############################################################################################
+#    {
+#        "DATASET_ENC": '../cryptanalysis_old/datasets/dtEnc10k.csv',
+#        "DATASET_ORI": '../cryptanalysis_old/datasets/dtOri10k.csv',
+#        "RESULTS_FILE": "./results/random/substitutionCipher-old-data.pkl",
+#        "NAME": "OLD-DATASET",
+#    },
+############################################################################################
+#    # alphabet = string.ascii_lowercase + " "
     {
         "DATASET_ENC": './data/eng_sentences/substitutionCipherArr-encryptedEngSeq.csv',
         "DATASET_ORI": './data/eng_sentences/arr-decryptedEngSeq.csv',
-        "RESULTS_FILE": "./results/eng_sentences/lstm-substitutionCipher.pkl",
+        "RESULTS_DIR": "./results/eng_sentences/",
+        "NAME": "eng_sentences-substitution",
     },
     {
         "DATASET_ENC": './data/eng_sentences/transpositionCipherArr-encryptedEngSeq.csv',
         "DATASET_ORI": './data/eng_sentences/arr-decryptedEngSeq.csv',
-        "RESULTS_FILE": "./results/eng_sentences/lstm-transpositionCipher.pkl",
+        "RESULTS_DIR": "./results/eng_sentences/",
+        "NAME": "eng_sentences-transposition",
     },
     {
         "DATASET_ENC": './data/eng_sentences/productCipherArr-encryptedEngSeq.csv',
         "DATASET_ORI": './data/eng_sentences/arr-decryptedEngSeq.csv',
-        "RESULTS_FILE": "./results/eng_sentences/lstm-productCipher.pkl",
+        "RESULTS_DIR": "./results/eng_sentences/",
+        "NAME": "eng_sentences-product",
     },
+############################################################################################
+#    # alphabet = string.ascii_lowercase + " "
+#    {
+#        "DATASET_ENC": './data/random/substitutionCipherArr-encryptedRandomAsciiCharSeq.csv',
+#        "DATASET_ORI": './data/random/arr-decryptedRandomAsciiCharSeq.csv',
+#        "RESULTS_DIR": "./results/random/",
+#        "NAME": "random-substitution",
+#    },
+#    {
+#        "DATASET_ENC": './data/random/transpositionCipherArr-encryptedRandomAsciiCharSeq.csv',
+#        "DATASET_ORI": './data/random/arr-decryptedRandomAsciiCharSeq.csv',
+#        "RESULTS_DIR": "./results/random/",
+#        "NAME": "random-transposition",
+#    },
+#    {
+#        "DATASET_ENC": './data/random/productCipherArr-encryptedRandomAsciiCharSeq.csv',
+#        "DATASET_ORI": './data/random/arr-decryptedRandomAsciiCharSeq.csv',
+#        "RESULTS_DIR": "./results/random/",
+#        "NAME": "random-product",
+#    },
 ]
 
 def build_model(noise_std, num_classes, seq_len):

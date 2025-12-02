@@ -2,8 +2,6 @@ import numpy as np
 import argparse
 
 import torch
-import torch.nn as nn
-
 from torch.utils.data import TensorDataset, DataLoader
 
 from mango import scheduler, Tuner
@@ -18,7 +16,6 @@ from datasets import load_dataset
 import string
 import time
 import os
-import math
 
 parser = argparse.ArgumentParser(
     description="Script that trains a specified model with defined training configuration."
@@ -33,6 +30,7 @@ parser.add_argument(
         "reduced_embedding",
         "reduced_by_char_embedding",
         "by_char_embedding",
+        "lstm"
     ],
     required=True,
     help="Specify the model type. Must be one of: 'reduced' or 'simple'."
@@ -193,7 +191,7 @@ def objective(
     )
     loss = r.get("val_loss")
 
-    return np.min(loss)
+    return np.min(loss) # type: ignore
 
 
 for d in DATASETS:
@@ -235,7 +233,7 @@ for d in DATASETS:
     # Write weights and training results file
     results_dir = d.get("RESULTS_DIR", "")
     dataset_name = d.get("NAME")
-    results_file = results_dir + f"{model_version}/"  + dataset_name + "-autoencoder-" + train_id + ".pkl"
+    results_file = results_dir + f"{model_version}/"  + dataset_name + "-autoencoder-" + train_id + ".pkl" # type: ignore
     os.makedirs(os.path.dirname(results_file), exist_ok=True)
     with open(results_file, "wb") as file:
         pickle.dump(training_results, file)

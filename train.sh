@@ -6,7 +6,8 @@ PYTHON_INTERPRETER=python
 source .venv/bin/activate
 
 #MODELS=(simple one_hot embedding reduced_embedding)
-MODELS=(reduced_by_char_embedding by_char_embedding)
+#MODELS=(reduced_by_char_embedding by_char_embedding)
+MODELS=(lstm)
 
 devices=(0 1 2 3)
 total_devices=${#devices[@]}

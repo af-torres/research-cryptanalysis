@@ -267,6 +267,53 @@ class AutoEncoderOneHot_model(nn.Module):
         
         return decoded
 
+class LSTM_model(nn.Module):
+    def __init__(
+            self, num_classes, seq_len,
+            hidden_dim, num_layers,
+            noise_std=0.0,
+            dropout=0.5,
+            bidirectional=False,
+            padding_idx=0
+        ):
+        super(LSTM_model, self).__init__()
+        self.output_size = num_classes # n umber of classes (number of outputs)
+        self.num_layers = num_layers # number of layers
+        self.input_size = 1 # input size
+        self.hidden_size = hidden_dim # hidden state
+        
+        D = 2 if bidirectional else 1
+        
+        self.lstm = nn.LSTM(
+            input_size=self.input_size, hidden_size=self.hidden_size,
+            num_layers=num_layers, batch_first=True, bidirectional=bidirectional,
+            dropout=dropout if num_layers > 1 else 0
+        )
+        self.noise = HadamardNoise(noise_std=noise_std)
+        self.head = nn.Sequential(
+            nn.Linear(self.hidden_size * D * seq_len, self.hidden_size * D * seq_len),
+            nn.ReLU(),
+            nn.Dropout(p=dropout, inplace=False),
+            nn.Linear(self.hidden_size * D * seq_len, self.output_size * seq_len),
+        )
+        
+    def forward(self, x: torch.Tensor):
+        device = "cuda" if torch.cuda.is_available() else "cpu"
+        x = x.unsqueeze(2).to(dtype=torch.float32)
+        h_0 = torch.zeros(self.num_layers, x.size(0), self.hidden_size) # hidden state
+        c_0 = torch.zeros(self.num_layers, x.size(0), self.hidden_size) # internal state
+
+        # Assigning hidden and intenal states to GPU
+        h_0 = h_0.to(device)
+        c_0 = c_0.to(device)
+        
+        # Propagate input through LSTM
+        out, (hn, cn) = self.lstm(x, (h_0, c_0)) # lstm with input, hidden, and internal state
+        flatten = torch.flatten(out, start_dim=1)
+        noised = self.noise(flatten)
+       
+        return self.head(noised).view((x.shape[0], x.shape[1], -1))
+
 class AutoEncoder_factory:
     __versions = {
         "one_hot": AutoEncoderOneHot_model,
@@ -275,6 +322,7 @@ class AutoEncoder_factory:
         "reduced_embedding": AutoEncoderEmbeddingReduced_model,
         "reduced_by_char_embedding": AutoEncoderEmbeddingReducedByChar_model,
         "by_char_embedding": AutoEncoderEmbeddingByChar_model,
+        "lstm": LSTM_model,
     } 
 
     __model_hyper_params = {
@@ -311,6 +359,12 @@ class AutoEncoder_factory:
             dropout = np.arange(0, 0.75, 0.05),
             hidden_dim = range(5, 1000),
             embedding_dim = range(1, 500),
+        ),
+        "lstm": dict(
+            noise_std = np.arange(0, 0.75, 0.05),
+            dropout = np.arange(0, 0.75, 0.05),
+            hidden_dim = range(5, 1000),
+            num_layers = range(1, 4)
         ),
     }
 
@@ -390,48 +444,3 @@ def build_auto_encoder(
         "lossFunc": lossFunc,
         "optimizer": optimizer,
     }
-
-class LSTM_model(nn.Module):
-    def __init__(self, output_size, 
-                 input_size, hidden_size, num_layers,
-                 noise_std=0.0,
-                 seq_len=73,
-                 bidirectional=False,
-                 dropout=0.5):
-        super(LSTM_model, self).__init__()
-        self.output_size = output_size # n umber of classes (number of outputs)
-        self.num_layers = num_layers # number of layers
-        self.input_size = input_size # input size
-        self.hidden_size = hidden_size # hidden state
-        
-        D = 2 if bidirectional else 1
-        
-        self.lstm = nn.LSTM(
-            input_size=input_size, hidden_size=hidden_size,
-            num_layers=num_layers, batch_first=True, bidirectional=bidirectional
-        ) 
-        self.noise = HadamardNoise(noise_std=noise_std)
-        self.head = nn.Sequential(
-            # nn.Dropout(p=dropout, inplace=False)
-            nn.Linear(hidden_size * D * seq_len, hidden_size * D * seq_len),
-            nn.ReLU(),
-            #nn.Dropout(p=dropout, inplace=False),
-            nn.Linear(hidden_size * D * seq_len, output_size * seq_len),
-        )
-        
-    def forward(self, x):
-        device = "cuda" if torch.cuda.is_available() else "cpu"
-        h_0 = torch.zeros(self.num_layers, x.size(0), self.hidden_size) # hidden state
-        c_0 = torch.zeros(self.num_layers, x.size(0), self.hidden_size) # internal state
-
-        # Assigning hidden and intenal states to GPU
-        h_0 = h_0.to(device)
-        c_0 = c_0.to(device)
-        
-        # Propagate input through LSTM
-        out, (hn, cn) = self.lstm(x, (h_0, c_0)) # lstm with input, hidden, and internal state
-        flatten = torch.flatten(out, start_dim=1)
-        noised = self.noise(flatten)
-       
-        return self.head(noised).view((x.shape[0], x.shape[1], -1))
-    
