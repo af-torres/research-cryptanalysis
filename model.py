@@ -366,8 +366,8 @@ class AutoEncoder_factory:
         "lstm": dict(
             noise_std = np.arange(0, 0.75, 0.05),
             dropout = np.arange(0, 0.75, 0.05),
-            hidden_dim = range(5, 1000),
-            num_layers = range(1, 4)
+            hidden_dim = range(5, 250),
+            num_layers = range(1, 3)
         ),
     }
 
