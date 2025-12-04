@@ -297,9 +297,12 @@ class LSTM_model(nn.Module):
             nn.Linear(self.hidden_size * D * seq_len, self.output_size * seq_len),
         )
         
-    def forward(self, x: torch.Tensor):
-        device = "cuda" if torch.cuda.is_available() else "cpu"
+    def forward(
+            self, x: torch.Tensor, 
+        ):
+        device = x.device
         x = x.unsqueeze(2).to(dtype=torch.float32)
+        
         h_0 = torch.zeros(self.num_layers, x.size(0), self.hidden_size) # hidden state
         c_0 = torch.zeros(self.num_layers, x.size(0), self.hidden_size) # internal state
 
