@@ -13,7 +13,8 @@ if [ -z "$1" ]; then
 fi
 
 MODEL_VERSION="$1"
-input_noise=(.1 .2 .3 .4 .5 .6 .7 .8)
+#input_noise=(.1 .2 .3 .4 .5 .6 .7 .8)
+input_noise=(.1 .2 .3 .4)
 #input_noise=(.5 .6 .7 .8)
 
 devices=(0 1 2 3)
