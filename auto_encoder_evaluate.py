@@ -23,6 +23,7 @@ parser = argparse.ArgumentParser(
     description="Script that evaluates and creates report for a specified trained model."
 )
 parser.add_argument(
+    "-m"
     "--model_version",
     type=str,
     choices=[
@@ -38,6 +39,7 @@ parser.add_argument(
     help="Specify the model type. Must be one of: 'reduced' or 'simple'."
 )
 parser.add_argument(
+    "-id",
     "--train_id",
     type=str,
     required=True,
@@ -49,61 +51,68 @@ parser.add_argument(
     default=0,
     help="Specify the percentage of noise perturbation to add to inputs (0-1)."
 )
+parser.add_argument(
+    "-d",
+    "--dataset",
+    type=str,
+    choices=[
+        "eng_sentences",
+        "random"
+    ],
+    required=True
+)
 args = parser.parse_args()
 
 model_version = args.model_version
 train_id = args.train_id
 input_noise_p = args.input_noise
+dataset = args.dataset
 
-DATASETS = [
-############################################################################################
-#    {
-#        "DATASET_ENC": '../cryptanalysis_old/datasets/dtEnc10k.csv',
-#        "DATASET_ORI": '../cryptanalysis_old/datasets/dtOri10k.csv',
-#        "RESULTS_FILE": "./results/random/substitutionCipher-old-data.pkl",
-#        "NAME": "OLD-DATASET",
-#    },
-############################################################################################
-#    # alphabet = string.ascii_lowercase + " "
-    {
-        "DATASET_ENC": './data/eng_sentences/substitutionCipherArr-encryptedEngSeq.csv',
-        "DATASET_ORI": './data/eng_sentences/arr-decryptedEngSeq.csv',
-        "RESULTS_DIR": "./results/eng_sentences/",
-        "NAME": "eng_sentences-substitution",
-    },
-    {
-        "DATASET_ENC": './data/eng_sentences/transpositionCipherArr-encryptedEngSeq.csv',
-        "DATASET_ORI": './data/eng_sentences/arr-decryptedEngSeq.csv',
-        "RESULTS_DIR": "./results/eng_sentences/",
-        "NAME": "eng_sentences-transposition",
-    },
-    {
-        "DATASET_ENC": './data/eng_sentences/productCipherArr-encryptedEngSeq.csv',
-        "DATASET_ORI": './data/eng_sentences/arr-decryptedEngSeq.csv',
-        "RESULTS_DIR": "./results/eng_sentences/",
-        "NAME": "eng_sentences-product",
-    },
-############################################################################################
-#    # alphabet = string.ascii_lowercase + " "
-#    {
-#        "DATASET_ENC": './data/random/substitutionCipherArr-encryptedRandomAsciiCharSeq.csv',
-#        "DATASET_ORI": './data/random/arr-decryptedRandomAsciiCharSeq.csv',
-#        "RESULTS_DIR": "./results/random/",
-#        "NAME": "random-substitution",
-#    },
-#    {
-#        "DATASET_ENC": './data/random/transpositionCipherArr-encryptedRandomAsciiCharSeq.csv',
-#        "DATASET_ORI": './data/random/arr-decryptedRandomAsciiCharSeq.csv',
-#        "RESULTS_DIR": "./results/random/",
-#        "NAME": "random-transposition",
-#    },
-#    {
-#        "DATASET_ENC": './data/random/productCipherArr-encryptedRandomAsciiCharSeq.csv',
-#        "DATASET_ORI": './data/random/arr-decryptedRandomAsciiCharSeq.csv',
-#        "RESULTS_DIR": "./results/random/",
-#        "NAME": "random-product",
-#    },
-]
+datasets_map = dict(
+    eng_sentences = [
+        {
+            "DATASET_ENC": './data/eng_sentences/substitutionCipherArr-encryptedEngSeq.csv',
+            "DATASET_ORI": './data/eng_sentences/arr-decryptedEngSeq.csv',
+            "RESULTS_DIR": "./results/eng_sentences/",
+            "NAME": "eng_sentences-substitution",
+        },
+        {
+            "DATASET_ENC": './data/eng_sentences/transpositionCipherArr-encryptedEngSeq.csv',
+            "DATASET_ORI": './data/eng_sentences/arr-decryptedEngSeq.csv',
+            "RESULTS_DIR": "./results/eng_sentences/",
+            "NAME": "eng_sentences-transposition",
+        },
+        {
+            "DATASET_ENC": './data/eng_sentences/productCipherArr-encryptedEngSeq.csv',
+            "DATASET_ORI": './data/eng_sentences/arr-decryptedEngSeq.csv',
+            "RESULTS_DIR": "./results/eng_sentences/",
+            "NAME": "eng_sentences-product",
+        },
+    ],
+    random = [
+        {
+            "DATASET_ENC": './data/random/substitutionCipherArr-encryptedRandomAsciiCharSeq.csv',
+            "DATASET_ORI": './data/random/arr-decryptedRandomAsciiCharSeq.csv',
+            "RESULTS_DIR": "./results/random/",
+            "NAME": "random-substitution",
+        },
+        {
+            "DATASET_ENC": './data/random/transpositionCipherArr-encryptedRandomAsciiCharSeq.csv',
+            "DATASET_ORI": './data/random/arr-decryptedRandomAsciiCharSeq.csv',
+            "RESULTS_DIR": "./results/random/",
+            "NAME": "random-transposition",
+        },
+        {
+            "DATASET_ENC": './data/random/productCipherArr-encryptedRandomAsciiCharSeq.csv',
+            "DATASET_ORI": './data/random/arr-decryptedRandomAsciiCharSeq.csv',
+            "RESULTS_DIR": "./results/random/",
+            "NAME": "random-product",
+        },
+    ]
+)
+
+DATASETS = datasets_map.get(dataset)
+assert DATASETS
 
 aggregated_summary = f"{train_id}: model={model_version}; input_noise={input_noise_p}"
 
@@ -123,7 +132,7 @@ for i, d in enumerate(DATASETS):
     
     results_dir = d.get("RESULTS_DIR", "")
     dataset_name = d.get("NAME")
-    results_file = results_dir + f"{model_version}/"  + dataset_name + "-autoencoder-" + train_id + ".pkl"
+    results_file = results_dir + f"{model_version}/"  + dataset_name + "-autoencoder-" + train_id + ".pkl" # type: ignore
     results = load_results(results_file)
     hyper_params = results.get("hyper-params")
     assert hyper_params is not None
