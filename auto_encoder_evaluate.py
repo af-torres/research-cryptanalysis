@@ -1,16 +1,10 @@
-import numpy as np
-
 import torch
-import torch.nn as nn
-
-from torch.utils.data import TensorDataset, DataLoader
 
 import argparse
 import random
 import string
-import time
 
-from model import build_auto_encoder as build_model, AutoEncoder_factory, get_loss
+from model import build_auto_encoder as build_model
 from datasets import load_dataset
 from utils import load_results, get_accuracy, plot_acc_line
 
@@ -23,7 +17,6 @@ else:
 
 device = torch.device(dev)
 
-# alphabet = string.printable
 alphabet = string.ascii_lowercase + " "
 
 parser = argparse.ArgumentParser(
@@ -39,6 +32,7 @@ parser.add_argument(
         "reduced_embedding",
         "reduced_by_char_embedding",
         "by_char_embedding",
+        "lstm"
     ],
     required=True,
     help="Specify the model type. Must be one of: 'reduced' or 'simple'."
@@ -143,8 +137,8 @@ for i, d in enumerate(DATASETS):
     )
     m = build.get("model")
 
-    m.load_state_dict(weights)
-    m.to(device)
+    m.load_state_dict(weights) # type: ignore
+    m.to(device) # type: ignore
      
     tr_row_acc = get_accuracy(m, X_tr, Y_tr, axis=1, sort=True)
     tr_col_acc = get_accuracy(m, X_tr, Y_tr, axis=0)
