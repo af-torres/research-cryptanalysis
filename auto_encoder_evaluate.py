@@ -23,7 +23,7 @@ parser = argparse.ArgumentParser(
     description="Script that evaluates and creates report for a specified trained model."
 )
 parser.add_argument(
-    "-m"
+    "-m",
     "--model_version",
     type=str,
     choices=[

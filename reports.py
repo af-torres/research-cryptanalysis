@@ -4,16 +4,20 @@ import sys
 EVALUATOR_SCRIPT="./auto_encoder_evaluate.py"
 TRAINING_LOG_FILE="./training_log"
 
-def run_evaluation(model, train_id, input_noise):
+def run_evaluation(model, train_id, input_noise, dataset):
     interpreter_path = sys.executable
-    result = subprocess.run([
-        interpreter_path, EVALUATOR_SCRIPT, 
-        f"--model_version={model}",
-        f"--train_id={train_id}",
-        f"--input_noise={input_noise}"
-    ], capture_output=True, text=True)
-
-    print("Output:", result.stdout)
+    try:
+        result = subprocess.run([
+            interpreter_path, EVALUATOR_SCRIPT, 
+            f"--model_version={model}",
+            f"--train_id={train_id}",
+            f"--input_noise={input_noise}",
+            f"--dataset={dataset}",
+        ], capture_output=True, text=True, check=True)
+        print("Output:", result.stdout)
+    except subprocess.CalledProcessError as e:
+        print(f"Error with input: {e}")
+        print(f"Stderr: {e.stderr}")
 
 def read_training_log():
     with open(TRAINING_LOG_FILE, 'r', encoding='utf-8') as file:

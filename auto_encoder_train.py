@@ -247,4 +247,4 @@ for d in DATASETS:
         print(f"wrote results file {results_file}")
 
 with open("training_log", "a") as file:
-    file.write(f"{train_id}: model={model_version}; input_noise={input_noise_p}\n")
+    file.write(f"{train_id}: model={model_version}; input_noise={input_noise_p}; dataset={dataset}\n")
