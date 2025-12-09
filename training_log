@@ -10,3 +10,5 @@ ab9d96a16e3048749b2d3768018e357a: model=lstm; input_noise=0.7; dataset=eng_sente
 a147c33e2c9648c191790bfb2b9a1e57: model=lstm; input_noise=0.3; dataset=random
 2aa0d1959a4e491eb4e56efae9486c53: model=lstm; input_noise=0.4; dataset=random
 caadea4ef8b44628bf0a4fcba65828bd: model=lstm; input_noise=0.2; dataset=random
+196d57e8478b46b4a0b4ec09bd3a78c2: model=lstm; input_noise=0.7; dataset=random
+c37c9d6d8dfb4f2fa798ed1f1089d147: model=lstm; input_noise=0.8; dataset=random
